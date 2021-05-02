@@ -3,6 +3,17 @@
 .mud-button-group-root {
     border-radius: var(--mud-default-borderradius);
     display: inline-flex;
+
+    &.mud-button-group-override-styles .mud-button {
+        color: var(--mud-palette-text-primary);
+        background-color: inherit;
+        box-shadow: none;
+        border: none;
+
+        &:hover {
+            background-color: var(--mud-palette-action-default-hover);
+        }
+    }
 }
 .mud-button-group-horizontal {
     .mud-button:not(:last-child) {
@@ -13,6 +24,7 @@
     .mud-button:not(:first-child) {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
+        margin-left: -1px;
     }
 }
 
@@ -27,40 +39,39 @@
     .mud-button:not(:first-child) {
         border-top-right-radius: 0;
         border-top-left-radius: 0;
+        margin-top: -1px;
     }
 }
 
 .mud-button-group-text {
-    .mud-button {
-        padding: 6px 8px;
-    }
+    &.mud-button-group-override-styles {
+        .mud-button {
+            padding: 6px 8px;
+        }
 
-    &.mud-button-group-horizontal {
-        .mud-button:not(:last-child) {
+        &.mud-button-group-horizontal .mud-button:not(:last-child) {
             border-right: 1px solid var(--mud-palette-text-primary);
         }
-    }
 
-    &.mud-button-group-vertical {
-        .mud-button:not(:last-child) {
+        &.mud-button-group-vertical .mud-button:not(:last-child) {
             border-bottom: 1px solid var(--mud-palette-text-primary);
         }
-    }
 
-    @each $color in $mud-palette-colors {
-        &.mud-button-group-text-#{$color} {
-            .mud-button {
-                color: var(--mud-palette-#{$color});
-            }
+        @each $color in $mud-palette-colors {
+            &.mud-button-group-text-#{$color} {
+                .mud-button {
+                    color: var(--mud-palette-#{$color});
 
-            &.mud-button-group-horizontal {
-                .mud-button:not(:last-child) {
+                    &:hover {
+                        background-color: var(--mud-palette-#{$color}-hover);
+                    }
+                }
+
+                &.mud-button-group-horizontal .mud-button:not(:last-child) {
                     border-right: 1px solid var(--mud-palette-#{$color});
                 }
-            }
 
-            &.mud-button-group-vertical {
-                .mud-button:not(:last-child) {
+                &.mud-button-group-vertical .mud-button:not(:last-child) {
                     border-bottom: 1px solid var(--mud-palette-#{$color});
                 }
             }
@@ -69,28 +80,20 @@
 }
 
 .mud-button-group-outlined {
-    .mud-button {
-        padding: 5px 15px;
-        border: 1px solid var(--mud-palette-text-primary);
-    }
+    &.mud-button-group-override-styles{
+        .mud-button {
+            padding: 5px 15px;
+            border: 1px solid var(--mud-palette-text-primary);
+        }
 
-    @each $color in $mud-palette-colors {
-        &.mud-button-group-outlined-#{$color} {
-            .mud-button {
+        @each $color in $mud-palette-colors {
+            &.mud-button-group-outlined-#{$color} .mud-button {
                 color: var(--mud-palette-#{$color});
                 border: 1px solid var(--mud-palette-#{$color});
-            }
-        }
 
-        &.mud-button-group-horizontal {
-            .mud-button:not(:first-child) {
-                margin-left: -1px;
-            }
-        }
-
-        &.mud-button-group-vertical {
-            .mud-button:not(:first-child) {
-                margin-top: -1px;
+                &:hover {
+                    background-color: var(--mud-palette-#{$color}-hover);
+                }
             }
         }
     }
@@ -100,42 +103,43 @@
     box-shadow: var(--mud-elevation-2);
 
     .mud-button {
-        padding: 6px 16px;
-    }
+        box-shadow: none;
 
-    &.mud-button-group-horizontal {
-        .mud-button:not(:last-child) {
-            border-right: 1px solid var(--mud-palette-divider);
+        &:hover {
+            box-shadow: var(--mud-elevation-4);
         }
     }
 
-    &.mud-button-group-vertical {
-        .mud-button:not(:last-child) {
-            border-bottom: 1px solid var(--mud-palette-divider);
+    &.mud-button-group-override-styles {
+        .mud-button {
+            padding: 6px 16px;
         }
-    }
 
-    @each $color in $mud-palette-colors {
-        &.mud-button-group-filled-#{$color} {
-            .mud-button {
-                color: var(--mud-palette-#{$color}-text);
-                background-color: var(--mud-palette-#{$color});
+        &.mud-button-group-horizontal .mud-button:not(:first-child) {
+            border-left: 1px solid var(--mud-palette-divider);
+        }
 
-                &:hover {
-                    box-shadow: var(--mud-elevation-4);
-                    background-color: var(--mud-palette-#{$color}-darken);
+        &.mud-button-group-vertical .mud-button:not(:first-child) {
+            border-top: 1px solid var(--mud-palette-divider);
+        }
+
+        @each $color in $mud-palette-colors {
+            &.mud-button-group-filled-#{$color} {
+                .mud-button {
+                    color: var(--mud-palette-#{$color}-text);
+                    background-color: var(--mud-palette-#{$color});
+
+                    &:hover {
+                        background-color: var(--mud-palette-#{$color}-darken);
+                    }
                 }
-            }
 
-            &.mud-button-group-horizontal {
-                .mud-button:not(:last-child) {
-                    border-right: 1px solid var(--mud-palette-#{$color}-lighten);
+                &.mud-button-group-horizontal .mud-button:not(:first-child) {
+                    border-left: 1px solid var(--mud-palette-#{$color}-lighten);
                 }
-            }
 
-            &.mud-button-group-vertical {
-                .mud-button:not(:last-child) {
-                    border-bottom: 1px solid var(--mud-palette-#{$color}-lighten);
+                &.mud-button-group-vertical .mud-button:not(:first-child) {
+                    border-top: 1px solid var(--mud-palette-#{$color}-lighten);
                 }
             }
         }
@@ -143,4 +147,26 @@
 }
 .mud-button-group-disable-elevation {
     box-shadow: none;
+}
+
+.mud-button-group-root {
+    &.mud-button-group-outlined-size-small .mud-button {
+        padding: 3px 9px;
+        font-size: 0.8125rem;
+    }
+
+    &.mud-button-group-outlined-size-large .mud-button {
+        padding: 7px 21px;
+        font-size: 0.9375rem;
+    }
+
+    &.mud-button-group-filled-size-small .mud-button {
+        padding: 4px 10px;
+        font-size: 0.8125rem;
+    }
+
+    &.mud-button-group-filled-size-large .mud-button {
+        padding: 8px 22px;
+        font-size: 0.9375rem;
+    }
 }

@@ -8,6 +8,7 @@ namespace MudBlazor
     {
         protected string Classname =>
         new CssBuilder("mud-button-group-root")
+          .AddClass($"mud-button-group-override-styles", OverrideStyles)
           .AddClass($"mud-button-group-{Variant.ToDescriptionString()}")
           .AddClass($"mud-button-group-{Variant.ToDescriptionString()}-{Color.ToDescriptionString()}")
           .AddClass($"mud-button-group-{Variant.ToDescriptionString()}-size-{Size.ToDescriptionString()}")
@@ -17,17 +18,20 @@ namespace MudBlazor
           .AddClass(Class)
         .Build();
 
+        /// <summary>
+        /// If true, the button group will override the styles of the individual buttons.
+        /// </summary>
+        [Parameter] public bool OverrideStyles { get; set; } = true;
+
+        /// <summary>
+        /// Child content of component.
+        /// </summary>
         [Parameter] public RenderFragment ChildContent { get; set; }
 
         /// <summary>
         /// If true, the button group will be displayed vertically.
         /// </summary>
         [Parameter] public bool VerticalAlign { get; set; } = false;
-
-        /// <summary>
-        /// If true, the button group will be disabled.
-        /// </summary>
-        [Parameter] public bool Disabled { get; set; } = false;
 
         /// <summary>
         /// If true, no drop-shadow will be used.
@@ -40,7 +44,7 @@ namespace MudBlazor
         [Parameter] public Color Color { get; set; } = Color.Default;
 
         /// <summary>
-        /// The Size of the component.
+        /// The size of the component.
         /// </summary>
         [Parameter] public Size Size { get; set; } = Size.Medium;
 
