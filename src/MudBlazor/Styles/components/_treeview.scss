@@ -1,4 +1,6 @@
-﻿.mud-treeview {
+﻿@import '../abstracts/mixins';
+
+.mud-treeview {
     margin: 0px;
     padding: 0px;
     list-style: none;
@@ -54,6 +56,10 @@
     flex-shrink: 0;
     margin: 0 4px;
     justify-content: center;
+    
+    @include rtl {
+        transform: scaleX(-1);
+    }
 
     .mud-treeview-item-arrow-expand {
         color: var(--mud-palette-drawer-icon);
@@ -120,11 +126,5 @@
 
     to {
         transform: rotate(359deg);
-    }
-}
-
-.mud-application-layout-rtl {
-    .mud-treeview-item-arrow {
-        transform: scaleX(-1);
     }
 }
