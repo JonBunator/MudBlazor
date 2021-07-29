@@ -1,4 +1,6 @@
-﻿.mud-breadcrumbs {
+﻿@import '../abstracts/mixins';
+
+.mud-breadcrumbs {
     display: flex;
     flex-wrap: wrap;
     flex: 0 1 auto;
@@ -10,6 +12,10 @@
 
 .mud-breadcrumb-separator {
     padding: 0 12px;
+    
+    @include rtl {
+        transform: scaleX(-1);
+    }
 }
 
 .mud-breadcrumb-separator > span {
