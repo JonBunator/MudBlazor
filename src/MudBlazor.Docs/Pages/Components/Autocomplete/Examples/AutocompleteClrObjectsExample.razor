@@ -13,12 +13,12 @@
                          SearchFunc="@Search" ToStringFunc="@(e=> e==null?null : $"{e.Name} ({e.Sign})")">
             <ItemTemplate Context="e">                          
                 <MudText>
-                    <MudIcon Icon="@Icons.Material.Filled.CheckBoxOutlineBlank" Class="mb-n1 mr-3"/>@($"{e.Name} ({e.Sign})")
+                    <MudIcon Icon="@Icons.Material.Filled.CheckBoxOutlineBlank" Class="mb-n1 me-3"/>@($"{e.Name} ({e.Sign})")
                 </MudText>
             </ItemTemplate>
             <ItemSelectedTemplate Context="e">                
                 <MudText>
-                    <MudIcon Icon="@Icons.Material.Filled.CheckBox" Class="mb-n1 mr-3"/>@($"{e.Name} ({e.Sign})")
+                    <MudIcon Icon="@Icons.Material.Filled.CheckBox" Class="mb-n1 me-3"/>@($"{e.Name} ({e.Sign})")
                 </MudText>
             </ItemSelectedTemplate>
         </MudAutocomplete>

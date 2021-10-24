@@ -6,7 +6,7 @@
             <MudTreeViewItem @bind-Expanded="@context.IsExpanded" Items="@context.TreeItems">
                 <Content>
                     <MudTreeViewItemToggleButton @bind-Expanded="@context.IsExpanded" Visible="@context.HasChild" />
-                    <MudIcon Icon="@context.Icon" Class="ml-0 mr-2" Color="@Color.Default" />
+                    <MudIcon Icon="@context.Icon" Class="ms-0 me-2" Color="@Color.Default" />
                     <MudText>@context.Text</MudText>
                 </Content>
             </MudTreeViewItem>
