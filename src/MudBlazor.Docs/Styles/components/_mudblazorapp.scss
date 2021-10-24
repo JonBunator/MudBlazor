@@ -7,6 +7,8 @@
 
     .mud-card-header .mud-card-header-avatar {
         margin-right: 6px;
+        margin-inline-end: 6px;
+        margin-inline-start: unset;
     }
 
     .mud-list-subheader {
@@ -87,6 +89,8 @@
 
         .mud-alert-icon {
             margin-right: 4px;
+            margin-inline-end: 4px;
+            margin-inline-start: unset;
         }
 
         &:hover {
@@ -122,6 +126,8 @@
         .mud-card-header .mud-card-header-actions {
             margin-top: -6px;
             margin-right: -12px;
+            margin-inline-end: -12px;
+            margin-inline-start: unset;
         }
 
         .calc-button-small {

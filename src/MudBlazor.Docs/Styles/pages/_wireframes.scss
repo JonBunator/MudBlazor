@@ -26,11 +26,15 @@
 
     &.wf-drawer-open-left {
         margin-left: 70px;
+        margin-inline-start: 70px;
+        margin-inline-end: unset;
         width: calc(100% - 70px);
     }
 
     &.wf-drawer-open-right {
         margin-right: 70px;
+        margin-inline-end: 70px;
+        margin-inline-start: unset;
         width: calc(100% - 70px);
     }
 }
