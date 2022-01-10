@@ -30,6 +30,8 @@ public partial class Appbar
     private bool _dialogOpen;
     private void OpenDialog() => _dialogOpen = true;
     private DialogOptions _dialogOptions = new() {Position = DialogPosition.TopCenter, NoHeader = true};
+
+    private string _text;
     
     private async void OnSearchResult(ApiLinkServiceEntry entry)
     {

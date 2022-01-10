@@ -62,6 +62,14 @@
         border: none;
         border-radius: var(--mud-default-borderradius);
     }
+    
+    & .docs-search-bar-highlighter {
+        background-color: var(--mud-palette-primary)
+    }
+    
+    .mud-list .mud-selected-item {
+        color: unset;
+    }
 }
 
 .docs-logo-filter{

@@ -81,9 +81,14 @@
     <MudSpacer/>
     @if (DisplaySearchBar)
     {
-        <MudAutocomplete AutoFocus="true" @ref="_searchAutocomplete" T="ApiLinkServiceEntry" Placeholder="Search" SearchFunc="Search" Variant="Variant.Outlined" ValueChanged="OnSearchResult" Class="docs-search-bar mx-4" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search">
+        <MudAutocomplete AutoFocus="true" @ref="_searchAutocomplete" T="ApiLinkServiceEntry" Placeholder="Search" @bind-Text="@_text" SearchFunc="Search" Variant="Variant.Outlined" ValueChanged="OnSearchResult" Class="docs-search-bar mx-4" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search">
             <ItemTemplate Context="result">
-                <MudText>@result.Title</MudText> <MudText Typo="Typo.body2">@result.SubTitle</MudText>
+                <MudText>
+                    <MudHighlighter Class="docs-search-bar-highlighter" Text="@result.Title" HighlightedText="@_text"/>
+                </MudText>
+                <MudText Class="mud-text-secondary docs-search-bar-highlighter" Typo="Typo.body2">
+                    <MudHighlighter Text="@result.SubTitle" HighlightedText="@_text"/>
+                </MudText>
             </ItemTemplate>
         </MudAutocomplete>
         <MudDivider FlexItem="true" Vertical="true" DividerType="DividerType.Middle" Class="mx-4 my-4"/>
@@ -97,9 +102,14 @@
 
 <MudDialog @bind-IsVisible="_dialogOpen" Options="_dialogOptions" Class="docs-gray-bg" ClassContent="docs-mobile-dialog-search">
     <DialogContent>
-        <MudAutocomplete @ref="_searchAutocomplete" T="ApiLinkServiceEntry" PopoverClass="docs-mobile-dialog-search-popover" Placeholder="Search docs" SearchFunc="Search" ValueChanged="OnSearchResult" Clearable="true" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search">
+        <MudAutocomplete @ref="_searchAutocomplete" T="ApiLinkServiceEntry" @bind-Text="@_text" PopoverClass="docs-mobile-dialog-search-popover" Placeholder="Search docs" SearchFunc="Search" ValueChanged="OnSearchResult" Clearable="true" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search">
             <ItemTemplate Context="result">
-                <MudText>@result.Title</MudText> <MudText Typo="Typo.body2">@result.SubTitle</MudText>
+                <MudText>
+                    <MudHighlighter Class="docs-search-bar-highlighter" Text="@result.Title" HighlightedText="@_text"/>
+                </MudText>
+                <MudText Class="mud-text-secondary docs-search-bar-highlighter" Typo="Typo.body2">
+                    <MudHighlighter Text="@result.SubTitle" HighlightedText="@_text"/>
+                </MudText>
             </ItemTemplate>
         </MudAutocomplete>
         <div class="d-flex justify-center align-center mud-height-full pb-16">
