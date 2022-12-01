@@ -29,7 +29,6 @@ jobs:
             if(!pr.draft) {
               labels.push("PR: needs review");
             }
-            console.log("context.issue.number");
             console.log("context.pull.number");
             console.log("context.payload.pull_request");
 
