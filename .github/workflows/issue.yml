@@ -16,4 +16,8 @@ jobs:
               repo: context.repo.repo,
               labels: ['wantsPR']
             })
-            console.log(body);
+            if(body.includes("- [X] I would like to do a Pull Request") {
+              console.log("yes");
+            } else {
+              console.log("no");
+            }
