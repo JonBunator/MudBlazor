@@ -20,6 +20,13 @@ jobs:
                 repo: context.repo.repo,
                 body: '👋 Thanks for wanting to do a PR! We suggest that you wait for an answer from @MudBlazor/contribution-team @MudBlazor/core-team . Otherwise we can not guarantee that your PR will be merged. As the library grows, we have to be very strict what PRs we can accept.'
               })
+              console.log(context.payload.issue.user.login)
+              github.rest.issues.addAssignees({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                assignees: [context.payload.issue.user.login]
+              })
             }
         
             if (body.includes("### Feature request type\n\nNew component")) {
