@@ -9,10 +9,11 @@ jobs:
       - uses: actions/github-script@v6
         with:
           script: |
-              if(context.payload.issue.body.includes(" - [X] I would like to do a Pull Request")
-                github.rest.issues.addLabels({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  labels: ['wantsPR']
-                })
+            const body = context.payload.issue.body;
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['wantsPR']
+            })
+            console.log(body);
