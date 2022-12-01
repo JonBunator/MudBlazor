@@ -10,14 +10,15 @@ jobs:
         with:
           script: |
             const body = context.payload.issue.body;
-            github.rest.issues.addLabels({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              labels: ['wantsPR']
-            })
-            if(body.includes("- [X] I would like to do a Pull Request") {
+
+            if (body.includes("- [X] I would like to do a Pull Request")) {
               console.log("yes");
+              github.rest.issues.addLabels({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: ['wantsPR']
+            })
             } else {
               console.log("no");
             }
