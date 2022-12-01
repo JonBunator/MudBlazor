@@ -1,4 +1,4 @@
-on: pull_request
+on: pull_request_target
 
 jobs:
   pr-bot:
@@ -29,10 +29,10 @@ jobs:
             if(!pr.draft) {
               labels.push("PR: needs review");
             }
-            console.log(github);
+            
             if(labels.length != 0) {
               github.rest.issues.addLabels({
-                issue_number: github.event.issue.number,
+                issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 labels: labels
