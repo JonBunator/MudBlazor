@@ -29,9 +29,10 @@ jobs:
             if(!pr.draft) {
               labels.push("PR: needs review");
             }
+            console.log(context);
             if(labels.length != 0) {
               github.rest.issues.addLabels({
-                issue_number: 91,
+                issue_number: context.payload.pull_request.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 labels: labels
