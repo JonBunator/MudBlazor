@@ -10,21 +10,23 @@ jobs:
         with:
           script: |
             const body = context.payload.issue.body;
+            let labels = [];
             if (body.includes("- [X] I would like to do a Pull Request")) {
+              labels.push("wantsPR");
+              console.log("Author wants to do a PR.");
+            }
+                        
+            if (body.includes("### Feature request type\n\nNew component")) {
+              labels.push("new component");
+              console.log("Feature request type: new component.");
+            }
+            
+            if(labels.length != 0) {
               github.rest.issues.addLabels({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 labels: ['wantsPR']
               })
-            console.log("Author wants to do a PR.");
             }
-            
-            if (body.includes("### Feature request type\n\nNew component")) {
-              github.rest.issues.addLabels({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                labels: ['new component']
-              })
-            }
+
