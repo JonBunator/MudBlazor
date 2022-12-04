@@ -7,12 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v6
-        env:
-            BODY: ${{ context.payload.issue.body }}
         with:
           script: |
+            const body = context.payload.issue.body;
             let labels = [];
-            if ("$BODY".includes("- [X] I would like to do a Pull Request")) {
+            if (body.includes("- [X] I would like to do a Pull Request")) {
               labels.push("wants to do a PR");
               const author = context.payload.issue.user.login;              
               const comment = '👋 Thanks for wanting to do a PR @' + author + ' !\nWe suggest that you wait for an answer from @MudBlazor/contribution-team @MudBlazor/core-team . Otherwise we can not guarantee that your PR will be merged. As the library grows, we have to be very strict what PRs we can accept.'
@@ -31,15 +30,15 @@ jobs:
               console.log("Author wants to do a PR.");
             }
         
-            if ("$BODY".includes("### Feature request type\n\nNew component")) {
+            if (body.includes("### Feature request type\n\nNew component")) {
               labels.push("new component");
               console.log("Feature request type: new component.");
               
-            } else if ("$BODY".includes("### Feature request type\n\nPerformance improvement")) {
+            } else if (body.includes("### Feature request type\n\nPerformance improvement")) {
               labels.push("performance");
               console.log("Feature request type: Performance improvement.");
               
-            } else if ("$BODY".includes("### Bug type\n\nDocs (mudblazor.com)")) {
+            } else if (body.includes("### Bug type\n\nDocs (mudblazor.com)")) {
               labels.push("docs");
               console.log("Bug type: docs.");
             }
