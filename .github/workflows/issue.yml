@@ -9,7 +9,7 @@ jobs:
       - uses: actions/github-script@v6
         with:
           script: |
-            const body = ${{ context.payload.issue.body }}
+            const body = context.payload.issue.body;
             let labels = [];
             if (body.includes("- [X] I would like to do a Pull Request")) {
               labels.push("wants to do a PR");
