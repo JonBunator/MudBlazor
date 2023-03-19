@@ -19,7 +19,17 @@ namespace MudBlazor
         {
             get => _errors.ToArray();
         }
+
+#nullable enable
+        public object? Model { get; set; }
+#nullable disable
+
         protected HashSet<string> _errors = new();
+
+        void IForm.FieldChanged(IFormComponent formControl, object newValue)
+        {
+            //implement in future for table
+        }
 
         void IForm.Add(IFormComponent formControl)
         {

@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using System;
+using Microsoft.AspNetCore.Components;
 using MudBlazor.Extensions;
 using MudBlazor.Utilities;
 
 namespace MudBlazor
 {
-    partial class MudAvatar : MudComponentBase
+    partial class MudAvatar : MudComponentBase, IDisposable
     {
         [CascadingParameter] protected MudAvatarGroup AvatarGroup { get; set; }
         protected string Classname =>
@@ -28,59 +29,76 @@ namespace MudBlazor
         /// <summary>
         /// The higher the number, the heavier the drop-shadow.
         /// </summary>
-        [Parameter] public int Elevation { set; get; } = 0;
+        [Parameter]
+        [Category(CategoryTypes.Avatar.Appearance)]
+        public int Elevation { set; get; } = 0;
 
         /// <summary>
         /// If true, border-radius is set to 0.
         /// </summary>
-        [Parameter] public bool Square { get; set; }
+        [Parameter]
+        [Category(CategoryTypes.Avatar.Appearance)]
+        public bool Square { get; set; }
 
         /// <summary>
         /// If true, border-radius is set to the themes default value.
         /// </summary>
-        [Parameter] public bool Rounded { get; set; }
+        [Parameter]
+        [Category(CategoryTypes.Avatar.Appearance)]
+        public bool Rounded { get; set; }
 
         /// <summary>
         /// Link to image, if set a image will be displayed instead of text.
         /// </summary>
-        [Parameter] public string Image { get; set; }
+        [Parameter]
+        [Category(CategoryTypes.Avatar.Behavior)]
+        public string Image { get; set; }
+
+        /// <summary>
+        /// If set (and Image is also set), will add an alt property to the img element
+        /// </summary>
+        [Parameter]
+        [Category(CategoryTypes.Avatar.Behavior)]
+        public string Alt { get; set; }
 
         /// <summary>
         /// The color of the component. It supports the theme colors.
         /// </summary>
-        [Parameter] public Color Color { get; set; } = Color.Default;
+        [Parameter]
+        [Category(CategoryTypes.Avatar.Appearance)]
+        public Color Color { get; set; } = Color.Default;
 
         /// <summary>
         /// The Size of the MudAvatar.
         /// </summary>
-        [Parameter] public Size Size { get; set; } = Size.Medium;
+        [Parameter]
+        [Category(CategoryTypes.Avatar.Appearance)]
+        public Size Size { get; set; } = Size.Medium;
 
         /// <summary>
         /// The variant to use.
         /// </summary>
-        [Parameter] public Variant Variant { get; set; } = Variant.Filled;
+        [Parameter]
+        [Category(CategoryTypes.Avatar.Appearance)]
+        public Variant Variant { get; set; } = Variant.Filled;
 
         /// <summary>
         /// Child content of the component.
         /// </summary>
-        [Parameter] public RenderFragment ChildContent { get; set; }
+        [Parameter]
+        [Category(CategoryTypes.Avatar.Behavior)]
+        public RenderFragment ChildContent { get; set; }
 
         protected override void OnInitialized()
         {
             base.OnInitialized();
 
-            if (AvatarGroup != null)
-            {
-                AvatarGroup.AddAvatar(this);
-            }
+            AvatarGroup?.AddAvatar(this);
         }
 
-        protected void Dispose()
+        public void Dispose()
         {
-            if (AvatarGroup != null)
-            {
-                AvatarGroup.RemoveAvatar(this);
-            }
+            AvatarGroup?.RemoveAvatar(this);
         }
 
         internal void ForceRedraw()

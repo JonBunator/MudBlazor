@@ -1,18 +1,28 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using MudBlazor.Extensions;
+using MudBlazor.Utilities;
 
 namespace MudBlazor
 {
     public partial class MudInput<T> : MudBaseInput<T>
     {
         protected string Classname => MudInputCssHelper.GetClassname(this,
-            () => !string.IsNullOrEmpty(Text) || Adornment == Adornment.Start || !string.IsNullOrWhiteSpace(Placeholder));
+            () => HasNativeHtmlPlaceholder() || !string.IsNullOrEmpty(Text) || Adornment == Adornment.Start || !string.IsNullOrWhiteSpace(Placeholder));
 
         protected string InputClassname => MudInputCssHelper.GetInputClassname(this);
 
         protected string AdornmentClassname => MudInputCssHelper.GetAdornmentClassname(this);
+
+        protected string ClearButtonClassname =>
+                    new CssBuilder()
+                    .AddClass("me-n1", Adornment == Adornment.End && HideSpinButtons == false)
+                    .AddClass("mud-icon-button-edge-end", Adornment == Adornment.End && HideSpinButtons == true)
+                    .AddClass("me-6", Adornment != Adornment.End && HideSpinButtons == false)
+                    .AddClass("mud-icon-button-edge-margin-end", Adornment != Adornment.End && HideSpinButtons == true)
+                    .Build();
 
         /// <summary>
         /// Type of the input element. It should be a valid HTML5 input type.
@@ -58,27 +68,38 @@ namespace MudBlazor
         /// </summary>
         [Parameter] public RenderFragment ChildContent { get; set; }
 
-        private ElementReference _elementReference;
+        public ElementReference ElementReference { get; private set; }
+        private ElementReference _elementReference1;
 
-        public override ValueTask FocusAsync()
+        public override async ValueTask FocusAsync()
         {
-            return _elementReference.FocusAsync();
+            try
+            {
+                if (InputType == InputType.Hidden && ChildContent != null)
+                    await _elementReference1.FocusAsync();
+                else
+                    await ElementReference.FocusAsync();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("MudInput.FocusAsync: " + e.Message);
+            }
+        }
+
+        public override ValueTask BlurAsync()
+        {
+            return ElementReference.MudBlurAsync();
         }
 
         public override ValueTask SelectAsync()
         {
-            return _elementReference.MudSelectAsync();
+            return ElementReference.MudSelectAsync();
         }
 
         public override ValueTask SelectRangeAsync(int pos1, int pos2)
         {
-            return _elementReference.MudSelectRangeAsync(pos1, pos2);
+            return ElementReference.MudSelectRangeAsync(pos1, pos2);
         }
-
-        /// <summary>
-        /// The short hint displayed in the input before the user enters a value.
-        /// </summary>
-        [Parameter] public string Placeholder { get; set; }
 
         /// <summary>
         /// Invokes the callback when the Up arrow button is clicked when the input is set to <see cref="InputType.Number"/>.
@@ -106,6 +127,26 @@ namespace MudBlazor
         /// Button click event for clear button. Called after text and value has been cleared.
         /// </summary>
         [Parameter] public EventCallback<MouseEventArgs> OnClearButtonClick { get; set; }
+
+        /// <summary>
+        /// Mouse wheel event for input.
+        /// </summary>
+        [Parameter] public EventCallback<WheelEventArgs> OnMouseWheel { get; set; }
+
+        /// <summary>
+        /// Custom clear icon.
+        /// </summary>
+        [Parameter] public string ClearIcon { get; set; } = Icons.Material.Filled.Clear;
+
+        /// <summary>
+        /// Custom numeric up icon.
+        /// </summary>
+        [Parameter] public string NumericUpIcon { get; set; } = Icons.Material.Filled.KeyboardArrowUp;
+
+        /// <summary>
+        /// Custom numeric down icon.
+        /// </summary>
+        [Parameter] public string NumericDownIcon { get; set; } = Icons.Material.Filled.KeyboardArrowDown;
 
         private Size GetButtonSize() => Margin == Margin.Dense ? Size.Small : Size.Medium;
 
@@ -135,6 +176,7 @@ namespace MudBlazor
         protected virtual async Task ClearButtonClickHandlerAsync(MouseEventArgs e)
         {
             await SetTextAsync(string.Empty, updateValue: true);
+            await ElementReference.FocusAsync();
             await OnClearButtonClick.InvokeAsync(e);
         }
 
@@ -143,8 +185,20 @@ namespace MudBlazor
         public override async Task SetParametersAsync(ParameterView parameters)
         {
             await base.SetParametersAsync(parameters);
-            if (!_isFocused || _forceTextUpdate)
+            //if (!_isFocused || _forceTextUpdate)
+            //    _internalText = Text;
+            if (RuntimeLocation.IsServerSide && TextUpdateSuppression)
+            {
+                // Text update suppression, only in BSS (not in WASM).
+                // This is a fix for #1012
+                if (!_isFocused || _forceTextUpdate)
+                    _internalText = Text;
+            }
+            else
+            {
+                // in WASM (or in BSS with TextUpdateSuppression==false) we always update
                 _internalText = Text;
+            }
         }
 
         /// <summary>
@@ -152,10 +206,18 @@ namespace MudBlazor
         /// </summary>
         /// <param name="text"></param>
         /// <returns></returns>
-        public async Task SetText(string text)
+        public Task SetText(string text)
         {
             _internalText = text;
-            await SetTextAsync(text);
+            return SetTextAsync(text);
+        }
+
+
+        // Certain HTML5 inputs (dates and color) have a native placeholder
+        private bool HasNativeHtmlPlaceholder()
+        {
+            return GetInputType() is InputType.Color or InputType.Date or InputType.DateTimeLocal or InputType.Month
+                or InputType.Time or InputType.Week;
         }
     }
 

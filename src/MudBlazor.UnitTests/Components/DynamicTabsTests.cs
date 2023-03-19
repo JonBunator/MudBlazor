@@ -7,6 +7,7 @@ using System.Xml.Linq;
 using AngleSharp.Html.Dom;
 using Bunit;
 using FluentAssertions;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor.Services;
 using MudBlazor.UnitTests.Mocks;
@@ -18,11 +19,15 @@ namespace MudBlazor.UnitTests.Components
     [TestFixture]
     public class DynamicTabsTests : BunitTest
     {
+        public override void Setup()
+        {
+            base.Setup();
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), new MockResizeObserverFactory()));
+        }
+
         [Test]
         public async Task DefaultValues()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             var comp = Context.RenderComponent<MudDynamicTabs>();
             var tabs = comp.Instance;
 
@@ -46,16 +51,13 @@ namespace MudBlazor.UnitTests.Components
             comp.Nodes.Should().ContainSingle();
             comp.Nodes[0].Should().BeAssignableTo<IHtmlDivElement>();
 
-            (comp.Nodes[0] as IHtmlDivElement).ClassList.Should().BeEquivalentTo("mud-tabs", "mud-dynamic-tabs");
+            ((IHtmlDivElement)comp.Nodes[0]).ClassList.Should().BeEquivalentTo("mud-tabs", "mud-dynamic-tabs");
         }
 
         [Test]
         public async Task BasicParameters()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             var comp = Context.RenderComponent<SimpleDynamicTabsTest>();
-            Console.WriteLine(comp.Markup);
 
             // three panels three close icons;
             var closeButtons = comp.FindAll(".my-close-icon-class");
@@ -66,8 +68,8 @@ namespace MudBlazor.UnitTests.Components
                 item.GetAttribute("style").Should().Be("propertyA: 4px");
                 item.ClassList.Should().StartWith(new string[] { "mud-button-root" });
 
-                XElement actual = XElement.Parse($"<test>{item.Children[0].Children[0].InnerHtml}</test>");
-                XElement expected = XElement.Parse($"<test>{Icons.Material.Filled.RestoreFromTrash}</test>");
+                var actual = XElement.Parse($"<test>{item.Children[0].Children[0].InnerHtml}</test>");
+                var expected = XElement.Parse($"<test>{Icons.Material.Filled.RestoreFromTrash}</test>");
 
                 actual.Should().BeEquivalentTo(expected);
             }
@@ -80,8 +82,8 @@ namespace MudBlazor.UnitTests.Components
                 item.GetAttribute("style").Should().Be("propertyB: 6px");
                 item.ClassList.Should().StartWith(new string[] { "mud-button-root" });
 
-                XElement actual = XElement.Parse($"<test>{item.Children[0].Children[0].InnerHtml}</test>");
-                XElement expected = XElement.Parse($"<test>{Icons.Material.Filled.AddAlarm}</test>");
+                var actual = XElement.Parse($"<test>{item.Children[0].Children[0].InnerHtml}</test>");
+                var expected = XElement.Parse($"<test>{Icons.Material.Filled.AddAlarm}</test>");
 
                 actual.Should().BeEquivalentTo(expected);
 
@@ -91,10 +93,7 @@ namespace MudBlazor.UnitTests.Components
         [Test]
         public async Task BasicParameters_WithToolTips()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             var comp = Context.RenderComponent<SimpleDynamicTabsTestWithToolTips>();
-            Console.WriteLine(comp.Markup);
 
             // three panels three close icons;
             var closeButtons = comp.FindAll(".my-close-icon-class");
@@ -105,18 +104,24 @@ namespace MudBlazor.UnitTests.Components
                 item.GetAttribute("style").Should().Be("propertyA: 4px");
                 item.ClassList.Should().StartWith(new string[] { "mud-button-root" });
 
-                XElement actual = XElement.Parse($"<test>{item.Children[0].Children[0].InnerHtml}</test>");
-                XElement expected = XElement.Parse($"<test>{Icons.Material.Filled.RestoreFromTrash}</test>");
+                var actual = XElement.Parse($"<test>{item.Children[0].Children[0].InnerHtml}</test>");
+                var expected = XElement.Parse($"<test>{Icons.Material.Filled.RestoreFromTrash}</test>");
 
                 actual.Should().BeEquivalentTo(expected);
 
                 var parent = (IHtmlElement)item.Parent;
-                parent.Children.Should().HaveCount(1);
+                parent.Children.Should().HaveCount(2, because: "the button and the empty popover hint");
 
-                //the tooltips are now portaled
-                //var toolTip = parent.Children[1];
-                //toolTip.ClassList.Should().StartWith(new string[] { "mud-tooltip" });
-                //toolTip.TextContent.Should().Be("close here");
+                await item.ParentElement.TriggerEventAsync("onmouseenter", new MouseEventArgs());
+                var popoverId = parent.Children[1].Id.Substring(8);
+
+                var toolTip = comp.Find($"#popovercontent-{popoverId}");
+
+                toolTip.ClassList.Should().Contain(new string[] { "mud-tooltip" });
+                toolTip.TextContent.Should().Be("close here");
+
+                await item.ParentElement.TriggerEventAsync("onmouseleave", new MouseEventArgs());
+
             }
 
             var addButtons = comp.FindAll(".my-add-icon-class");
@@ -127,27 +132,30 @@ namespace MudBlazor.UnitTests.Components
                 item.GetAttribute("style").Should().Be("propertyB: 6px");
                 item.ClassList.Should().StartWith(new string[] { "mud-button-root" });
 
-                XElement actual = XElement.Parse($"<test>{item.Children[0].Children[0].InnerHtml}</test>");
-                XElement expected = XElement.Parse($"<test>{Icons.Material.Filled.AddAlarm}</test>");
+                var actual = XElement.Parse($"<test>{item.Children[0].Children[0].InnerHtml}</test>");
+                var expected = XElement.Parse($"<test>{Icons.Material.Filled.AddAlarm}</test>");
 
                 actual.Should().BeEquivalentTo(expected);
 
                 var parent = (IHtmlElement)item.Parent;
-                parent.Children.Should().HaveCount(1);
+                parent.Children.Should().HaveCount(2, because: "the button and the empty popover hint"); ;
 
-                //var toolTip = parent.Children[1];
-                //toolTip.ClassList.Should().StartWith(new string[] { "mud-tooltip" });
-                //toolTip.TextContent.Should().Be("add here");
+                await item.ParentElement.TriggerEventAsync("onmouseenter", new MouseEventArgs());
+                var popoverId = parent.Children[1].Id.Substring(8);
+
+                var toolTip = comp.Find($"#popovercontent-{popoverId}");
+
+                toolTip.ClassList.Should().Contain(new string[] { "mud-tooltip" });
+                toolTip.TextContent.Should().Be("add here");
+
+                await item.ParentElement.TriggerEventAsync("onmouseleave", new MouseEventArgs());
             }
         }
 
         [Test]
         public async Task TestInteractions_AddTab()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
             var comp = Context.RenderComponent<SimpleDynamicTabsInteractionTest>();
-
-            Console.WriteLine(comp.Markup);
 
             var addButton = comp.Find(".my-add-icon-class");
             addButton.Click();
@@ -159,12 +167,9 @@ namespace MudBlazor.UnitTests.Components
         [Test]
         public async Task TestInteractions_RemoveTab()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
             var comp = Context.RenderComponent<SimpleDynamicTabsInteractionTest>();
 
-            Console.WriteLine(comp.Markup);
-
-            for (int i = 0; i < 3; i++)
+            for (var i = 0; i < 3; i++)
             {
                 var closeButton = comp.FindAll(".my-close-icon-class")[i];
                 closeButton.Click();

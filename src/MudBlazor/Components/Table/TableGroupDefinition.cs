@@ -3,11 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace MudBlazor
 {
-    public class TableGroupDefinition<T>
+    public class TableGroupDefinition<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>
     {
         public TableGroupDefinition()
         {
@@ -82,8 +83,22 @@ namespace MudBlazor
             {
                 _expandable = value;
                 if (_expandable == false)
-                    Context?.GroupRows.Where(gr => gr.GroupDefinition == this).ToList().ForEach(gr => gr.IsExpanded = true);
+                    Context?.GroupRows.Where(gr => gr.GroupDefinition == this).ToList().ForEach(gr => gr.IsExpanded = IsInitiallyExpanded);
             }
+        }
+
+        private bool _isInitiallyExpanded = true;
+        /// <summary>
+        /// Gets or Sets if expandable group header is collapsed or expanded on initialization.
+        /// </summary>
+        public bool IsInitiallyExpanded
+        {
+            get => _isInitiallyExpanded;
+            set
+            {
+                _isInitiallyExpanded = value;
+            }
+
         }
 
         internal bool IsParentExpandable

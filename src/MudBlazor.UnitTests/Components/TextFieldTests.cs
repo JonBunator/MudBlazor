@@ -12,7 +12,12 @@ using Bunit;
 using FluentAssertions;
 using FluentValidation;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using MudBlazor.UnitTests.TestComponents;
+using MudBlazor.UnitTests.TestComponents.Field;
+using MudBlazor.UnitTests.TestComponents.Form;
+using MudBlazor.UnitTests.TestComponents.TextField;
+using MudBlazor.UnitTests.Utilities;
 using NUnit.Framework;
 using static Bunit.ComponentParameterFactory;
 
@@ -22,6 +27,31 @@ namespace MudBlazor.UnitTests.Components
     public class TextFieldTests : BunitTest
     {
         /// <summary>
+        /// Text Field id should propagate to label for attribute
+        /// </summary>
+        [Test]
+        public void TestFieldLabelFor()
+        {
+            var comp = Context.RenderComponent<FormIsValidTest3>();
+            var label = comp.FindAll(".mud-input-label");
+            label[0].Attributes.GetNamedItem("for")?.Value.Should().Be("textFieldLabelTest");
+            label[1].Attributes.GetNamedItem("for")?.Value.Should().StartWith("mudinput-");
+        }
+
+        /// <summary>
+        /// Initial Text for double should be 0, with F1 format it should be 0.0
+        /// </summary>
+        [Test]
+        public async Task TextFieldLabelFor()
+        {
+            var comp = Context.RenderComponent<FieldTest>();
+            var label = comp.FindAll(".mud-input-label");
+            label[0].Attributes.GetNamedItem("for")?.Value.Should().StartWith("mudinput-");
+            label[1].Attributes.GetNamedItem("for")?.Value.Should().StartWith("mudinput-");
+            label[2].Attributes.GetNamedItem("for")?.Value.Should().Be("fieldLabelTest");
+        }
+
+        /// <summary>
         /// Initial Text for double should be 0, with F1 format it should be 0.0
         /// </summary>
         [Test]
@@ -29,7 +59,6 @@ namespace MudBlazor.UnitTests.Components
         {
             var comp = Context.RenderComponent<MudTextField<double>>();
             // print the generated html
-            Console.WriteLine(comp.Markup);
             // select elements needed for the test
             var textfield = comp.Instance;
             textfield.Value.Should().Be(0.0);
@@ -52,7 +81,6 @@ namespace MudBlazor.UnitTests.Components
         {
             var comp = Context.RenderComponent<MudTextField<double?>>();
             // print the generated html
-            Console.WriteLine(comp.Markup);
             // select elements needed for the test
             var textfield = comp.Instance;
             textfield.Value.Should().Be(null);
@@ -68,7 +96,6 @@ namespace MudBlazor.UnitTests.Components
         {
             var comp = Context.RenderComponent<MudTextField<int?>>(ComponentParameter.CreateParameter("Value", 17));
             // print the generated html
-            Console.WriteLine(comp.Markup);
             comp.SetParametersAndRender(ComponentParameter.CreateParameter("Value", null));
             comp.Find("input").Blur();
             comp.FindAll("div.mud-input-error").Count.Should().Be(0);
@@ -85,12 +112,10 @@ namespace MudBlazor.UnitTests.Components
         {
             var comp = Context.RenderComponent<MudTextField<int?>>();
             // print the generated html
-            //Console.WriteLine(comp.Markup);
             comp.Find("input").Change("seventeen");
             comp.Find("input").Blur();
-            Console.WriteLine(comp.Markup);
-            comp.FindAll("p.mud-input-error").Count.Should().Be(1);
-            comp.Find("p.mud-input-error").TextContent.Trim().Should().Be("Not a valid number");
+            comp.FindAll("div.mud-input-error").Count.Should().Be(2);
+            comp.Find("div.mud-input-error").TextContent.Trim().Should().Be("Not a valid number");
         }
 
         /// <summary>
@@ -191,7 +216,6 @@ namespace MudBlazor.UnitTests.Components
                 .CreditCard());
             var comp = Context.RenderComponent<MudTextField<string>>(Parameter(nameof(MudTextField<string>.Validation), validator.Validation));
             var textfield = comp.Instance;
-            Console.WriteLine(comp.Markup);
             // first try a valid credit card number
             comp.Find("input").Change("4012 8888 8888 1881");
             textfield.Error.Should().BeFalse(because: "The number is a valid VISA test credit card number");
@@ -199,7 +223,6 @@ namespace MudBlazor.UnitTests.Components
             // now try something that produces a validation error
             comp.Find("input").Change("0000 1111 2222 3333");
             textfield.Error.Should().BeTrue(because: "The credit card number is fake");
-            Console.WriteLine("Error message: " + textfield.ErrorText);
             textfield.ErrorText.Should().NotBeNullOrEmpty();
         }
 
@@ -305,7 +328,6 @@ namespace MudBlazor.UnitTests.Components
                 Parameter(nameof(MudTextField<string>.Text), text),
                 Parameter(nameof(MudTextField<string>.Lines), 2));
             // print the generated html
-            Console.WriteLine(comp.Markup);
             // select elements needed for the test
             var textfield = comp.Instance;
             comp.Find("textarea").InnerHtml.Should().Be(text);
@@ -337,7 +359,6 @@ namespace MudBlazor.UnitTests.Components
         {
             var comp = Context.RenderComponent<MultilineTextfieldBindingTest>();
             // print the generated html
-            Console.WriteLine(comp.Markup);
             var tf1 = comp.FindComponents<MudTextField<string>>()[0].Instance;
             var tf2 = comp.FindComponents<MudTextField<string>>()[1].Instance;
             comp.Find("input").Input("Bossmang");
@@ -355,7 +376,6 @@ namespace MudBlazor.UnitTests.Components
             tf1.Text.Should().Be("Beratna");
             tf2.Text.Should().Be("Beratna");
             comp.Find("textarea").TrimmedText().Should().Be("Beratna");
-            Console.WriteLine(comp.Markup);
         }
 
         [Test]
@@ -386,12 +406,23 @@ namespace MudBlazor.UnitTests.Components
             comp.FindAll("button").Should().BeEmpty();
         }
 
+        [Test]
+        public async Task TextField_ClearButton_TabIndex_Test()
+        {
+            var comp = Context.RenderComponent<MudTextField<string>>(
+                Parameter(nameof(MudTextField<string>.Clearable), true),
+                Parameter(nameof(MudTextField<string>.Text), "Test")
+            );
+
+            // Button should have tabindex -1
+            comp.Find("button").GetAttribute("tabindex").Should().Be("-1");
+        }
+
         #region ValidationAttribute support
         [Test]
         public async Task TextField_Should_Validate_Data_Attribute_Fail()
         {
             var comp = Context.RenderComponent<TextFieldValidationDataAttrTest>();
-            Console.WriteLine(comp.Markup);
             var textfieldcomp = comp.FindComponent<MudTextField<string>>();
             var textfield = textfieldcomp.Instance;
             await comp.InvokeAsync(() => textfield.DebounceInterval = 0);
@@ -404,14 +435,13 @@ namespace MudBlazor.UnitTests.Components
             await comp.InvokeAsync(() => textfield.Validate());
             textfield.ValidationErrors.Should().NotBeEmpty();
             textfield.ValidationErrors.Should().HaveCount(1);
-            textfield.ValidationErrors[0].Should().Equals("Should not be longer than 3");
+            textfield.ValidationErrors[0].Should().Be("Should not be longer than 3");
         }
 
         [Test]
         public async Task TextField_Should_Validate_Data_Attribute_Success()
         {
             var comp = Context.RenderComponent<TextFieldValidationDataAttrTest>();
-            Console.WriteLine(comp.Markup);
             var textfieldcomp = comp.FindComponent<MudTextField<string>>();
             var textfield = textfieldcomp.Instance;
             await comp.InvokeAsync(() => textfield.DebounceInterval = 0);
@@ -431,13 +461,13 @@ namespace MudBlazor.UnitTests.Components
             protected override ValidationResult IsValid(object value,
                 ValidationContext validationContext)
             {
-                return new ValidationResult("TEST ERROR");
+                return new ValidationResult(ErrorMessage);
             }
         }
         class TestFailingModel
         {
-            [CustomFailingValidation]
-            public string Foo { get; set; }
+            [CustomFailingValidation(ErrorMessage = "Foo")]
+            public virtual string Foo { get; set; }
         }
         [Test]
         public async Task TextField_Should_HaveCorrectMessageWithCustomAttr_Failing()
@@ -447,8 +477,31 @@ namespace MudBlazor.UnitTests.Components
             await comp.InvokeAsync(() => comp.Instance.Validate());
             comp.Instance.Error.Should().BeTrue();
             comp.Instance.ValidationErrors.Should().HaveCount(1);
-            comp.Instance.ValidationErrors[0].Should().Be("TEST ERROR");
-            comp.Instance.GetErrorText().Should().Be("TEST ERROR");
+            comp.Instance.ValidationErrors[0].Should().Be("Foo");
+            comp.Instance.GetErrorText().Should().Be("Foo");
+        }
+
+        class TestFailingModel2 : TestFailingModel
+        {
+            [CustomFailingValidation(ErrorMessage = "Bar")]
+            public override string Foo { get; set; }
+        }
+        /// <summary>
+        /// This test checks specifically the case where validation is made on a child class, but linq expression returns the property of the parent.
+        /// </summary>
+        [Test]
+        public async Task TextField_Should_HaveCorrectMessageWithCustomAttr_Override_Failing()
+        {
+            TestFailingModel model = new TestFailingModel2();
+            var comp = Context.RenderComponent<MudTextField<string>>(
+                ComponentParameter.CreateParameter("For", (Expression<Func<string>>)(() => (model as TestFailingModel2).Foo))
+                //ComponentParameter.CreateParameter("ForModel", typeof(TestFailingModel2)) // Explicitly set the `For` class
+            );
+            await comp.InvokeAsync(() => comp.Instance.Validate());
+            comp.Instance.Error.Should().BeTrue();
+            comp.Instance.ValidationErrors.Should().HaveCount(1);
+            comp.Instance.ValidationErrors[0].Should().Be("Bar");
+            comp.Instance.GetErrorText().Should().Be("Bar");
         }
 
 
@@ -478,6 +531,289 @@ namespace MudBlazor.UnitTests.Components
         }
         #endregion
         #endregion
-    }
 
+        [Test]
+        public async Task TextField_ClearTest1()
+        {
+            var comp = Context.RenderComponent<MudTextField<int>>();
+            comp.SetParam("Text", "17");
+            var textfield = comp.Instance;
+            textfield.Value.Should().Be(17);
+            textfield.Text.Should().Be("17");
+            await comp.InvokeAsync(async () => await textfield.Clear());
+            textfield.Value.Should().Be(0);
+            textfield.Text.Should().Be(null);
+        }
+
+        [Test]
+        public async Task TextField_ClearTest2()
+        {
+            var comp = Context.RenderComponent<MudTextField<string>>();
+            comp.Find("input").Change("Viva la ignorancia");
+            var textfield = comp.Instance;
+            textfield.Value.Should().Be("Viva la ignorancia");
+            textfield.Text.Should().Be("Viva la ignorancia");
+            await comp.InvokeAsync(async () => await textfield.Clear());
+            textfield.Value.Should().Be(null);
+            textfield.Text.Should().Be(null);
+        }
+
+        [Test]
+        public void TextField_CharacterCount()
+        {
+            var comp = Context.RenderComponent<MudTextField<string>>();
+            var inputControl = comp.FindComponent<MudInputControl>();
+            //Condition 1
+            comp.Instance.Counter = null;
+            inputControl.Instance.CounterText.Should().Be("");
+            //Condition 2
+            comp.Instance.Counter = 25;
+            comp.Find("input").Change("Test text");
+            inputControl.Instance.CounterText.Should().Be("9 / 25");
+            //Condition 3
+            comp.Instance.Counter = 0;
+            comp.Find("input").Change("Test text with total of 56 characters a aaaaaaaaa aaaaaa");
+            inputControl.Instance.CounterText.Should().Be("56");
+            //Condition 4
+            comp.Instance.Counter = 25;
+            comp.Instance.MaxLength = 30;
+            comp.Find("input").Change("Test text with total of25");
+            inputControl.Instance.CounterText.Should().Be("25 / 25");
+            //Condition 5
+            comp.Find("input").Change("Test text with total of 56 characters a aaaaaaaaa aaaaaa");
+            inputControl.Instance.CounterText.Should().Be("56 / 25");
+        }
+
+        /// <summary>
+        /// This tests the suppression of the suppression (fix for #1012)
+        /// </summary>
+        /// <returns></returns>
+        [Test]
+        public async Task TextField_TextUpdateSuppression()
+        {
+            var comp = Context.RenderComponent<MudTextField<string>>();
+            var input = comp.FindComponent<MudInput<string>>();
+            var textfield = comp.Instance;
+            comp.Find("input").Change("Vat of acid");
+            // this will make the input focused!
+            comp.Find("input").KeyDown(new KeyboardEventArgs() { Key = "Enter", Type = "keydown", });
+            textfield.Value.Should().Be("Vat of acid");
+            textfield.Text.Should().Be("Vat of acid");
+
+            // let's try to set the text directly on the input, TextUpdateSuppression should prevent it because we are focused
+            input.SetParam("Value", "");
+            input.Instance.Value.Should().Be("");
+            input.Instance.Text.Should().Be("Vat of acid");
+
+            // turn it off
+            comp.SetParam(nameof(MudBaseInput<string>.TextUpdateSuppression), false);
+
+            // now the input text should get overwritten
+            input.SetParam("Value", "In case of ladle");
+            input.Instance.Value.Should().Be("In case of ladle");
+            input.Instance.Text.Should().Be("In case of ladle");
+
+            // turn it on again
+            comp.SetParam(nameof(MudBaseInput<string>.TextUpdateSuppression), true);
+
+            input.SetParam("Value", "");
+            input.Instance.Value.Should().Be("");
+            input.Instance.Text.Should().Be("In case of ladle");
+
+            // force text update
+            await comp.InvokeAsync(() => input.Instance.ForceRender(forceTextUpdate: true));
+
+            input.Instance.Value.Should().Be("");
+            input.Instance.Text.Should().Be("");
+        }
+
+        [Test]
+        public async Task TextField_Should_UpdateOnBoundValueChange_WhenFocused_WithTextUpdateSuppressionOff()
+        {
+            var comp = Context.RenderComponent<TextFieldUpdateViaBindingTest>();
+            var input = comp.FindComponent<MudInput<string>>();
+            // this will make the input focused!
+            comp.Find("input").KeyDown(new KeyboardEventArgs() { Key = "a", Type = "keydown", });
+            // now simulate user input:
+            comp.Find("input").Input("The Stormlight Archive");
+            // check binding update
+            comp.Find("span").TrimmedText().Should().Be("value: The Stormlight Archive");
+            input.Instance.Value.Should().Be("The Stormlight Archive");
+            input.Instance.Text.Should().Be("The Stormlight Archive");
+            // now hit Enter to cause the clearing of the focused text field
+            comp.Find("input").KeyDown(new KeyboardEventArgs() { Key = "Enter", Type = "keydown", });
+            comp.WaitForAssertion(() => comp.Find("span").TrimmedText().Should().Be("value:"));
+            comp.WaitForAssertion(() => input.Instance.Value.Should().Be(""));
+            comp.WaitForAssertion(() => input.Instance.Text.Should().Be(""));
+        }
+
+        [Test]
+        public async Task TextField_ElementReferenceId_ShouldNot_BeEmpty()
+        {
+            var comp = Context.RenderComponent<MudTextField<string>>();
+            var inputId = comp.Instance.InputReference.ElementReference.Id;
+
+            Assert.IsNotEmpty(inputId);
+        }
+
+        class TestDataAnnotationModel
+        {
+            [Required(ErrorMessage = "The {0} field is required.")]
+            public string Foo1 { get; set; }
+
+            [Required(ErrorMessage = "The {0} field is required.")]
+            [Display(Name = FooTwoDisplayName)]
+            [Compare(nameof(Foo1), ErrorMessage = "'{0}' and '{1}' do not match.")]
+            public string Foo2 { get; set; }
+
+            public const string FooTwoDisplayName = "Foo two";
+        }
+
+        [Test]
+        public async Task TextField_Data_Annotation_Resolve_Name_Of_Field()
+        {
+            var model = new TestDataAnnotationModel();
+            var comp = Context.RenderComponent<MudTextField<string>>(ComponentParameter.CreateParameter("For", (Expression<Func<string>>)(() => model.Foo1)));
+            await comp.InvokeAsync(() => comp.Instance.Validate());
+            comp.Instance.Error.Should().BeTrue();
+            comp.Instance.ValidationErrors.Should().HaveCount(1);
+            comp.Instance.ValidationErrors[0].Should().Be($"The {nameof(TestDataAnnotationModel.Foo1)} field is required.");
+            comp.Instance.GetErrorText().Should().Be($"The {nameof(TestDataAnnotationModel.Foo1)} field is required.");
+            await comp.InvokeAsync(() =>
+            {
+                comp.Instance.Value = "Foo";
+                comp.Instance.Validate();
+            });
+            comp.Instance.Error.Should().BeFalse();
+            comp.Instance.ValidationErrors.Should().HaveCount(0);
+        }
+
+        [Test]
+        public async Task TextField_Data_Annotation_Resolve_Display_Name_Of_Field()
+        {
+            var model = new TestDataAnnotationModel();
+            var comp = Context.RenderComponent<MudTextField<string>>(ComponentParameter.CreateParameter("For", (Expression<Func<string>>)(() => model.Foo2)));
+            await comp.InvokeAsync(() => comp.Instance.Validate());
+            comp.Instance.Error.Should().BeTrue();
+            comp.Instance.ValidationErrors.Should().HaveCount(1);
+            comp.Instance.ValidationErrors[0].Should().Be($"The {TestDataAnnotationModel.FooTwoDisplayName} field is required.");
+            comp.Instance.GetErrorText().Should().Be($"The {TestDataAnnotationModel.FooTwoDisplayName} field is required.");
+        }
+
+        [Test]
+        public async Task TextField_Data_Annotation_Compare()
+        {
+            var model = new TestDataAnnotationModel();
+            var value = "Foo";
+            var comp = Context.RenderComponent<MudTextField<string>>(
+                ComponentParameter.CreateParameter("For", (Expression<Func<string>>)(() => model.Foo2)),
+                ComponentParameter.CreateParameter("Value", value));
+            await comp.InvokeAsync(() => comp.Instance.Validate());
+            comp.Instance.Error.Should().BeTrue();
+            comp.Instance.ValidationErrors.Should().HaveCount(1);
+            comp.Instance.ValidationErrors[0].Should().Be($"'{TestDataAnnotationModel.FooTwoDisplayName}' and '{nameof(TestDataAnnotationModel.Foo1)}' do not match.");
+            comp.Instance.GetErrorText().Should().Be($"'{TestDataAnnotationModel.FooTwoDisplayName}' and '{nameof(TestDataAnnotationModel.Foo1)}' do not match.");
+            model.Foo1 = value;
+            await comp.InvokeAsync(() =>
+            {
+                comp.Instance.Validate();
+            });
+            comp.Instance.Error.Should().BeFalse();
+            comp.Instance.ValidationErrors.Should().HaveCount(0);
+
+            comp.WaitForAssertion(() => comp.Instance.GetInputType().Should().Be(InputType.Text));
+            await comp.InvokeAsync(async () => await comp.Instance.SelectAsync());
+            await comp.InvokeAsync(async () => await comp.Instance.SelectRangeAsync(0, 1));
+            comp.WaitForAssertion(() => comp.Instance.ValidationErrors.Should().HaveCount(0));
+        }
+
+        [Test]
+        public async Task TextField_OnlyValidateIfDirty_Is_True_Should_OnlyHaveInputErrorWhenValueChanged()
+        {
+            var comp = Context.RenderComponent<MudTextField<int?>>(
+                ComponentParameter.CreateParameter("Required", true),
+                ComponentParameter.CreateParameter("OnlyValidateIfDirty", true));
+            comp.FindAll("div.mud-input-error").Count.Should().Be(0);
+
+            // user does not change input value but changes focus
+            comp.Find("input").Blur();
+            comp.FindAll("div.mud-input-error").Count.Should().Be(0);
+
+            // user puts in a invalid integer value
+            comp.Find("input").Change("invalid");
+            comp.Find("input").Blur();
+            comp.FindAll("div.mud-input-error").Count.Should().Be(1);
+            comp.Find("div.mud-input-error").TextContent.Trim().Should().Be("Not a valid number");
+
+            // user does not change invalid input value but changes focus
+            comp.Find("input").Blur();
+            comp.FindAll("div.mud-input-error").Count.Should().Be(1);
+            comp.Find("div.mud-input-error").TextContent.Trim().Should().Be("Not a valid number");
+
+            // reset (must reset dirty state)
+            await comp.InvokeAsync(() => comp.Instance.Reset());
+            comp.FindAll("div.mud-input-error").Count.Should().Be(0);
+
+            // user does not change input value but changes focus
+            comp.Find("input").Blur();
+            comp.FindAll("div.mud-input-error").Count.Should().Be(0);
+
+            // user puts in a invalid integer value
+            comp.Find("input").Change("invalid");
+            comp.Find("input").Blur();
+            comp.FindAll("div.mud-input-error").Count.Should().Be(1);
+            comp.Find("div.mud-input-error").TextContent.Trim().Should().Be("Not a valid number");
+
+            // user corrects input
+            comp.Find("input").Change(55);
+            comp.Find("input").Blur();
+            comp.FindAll("div.mud-input-error").Count.Should().Be(0);
+        }
+
+        [Test]
+        public async Task TextField_OnlyValidateIfDirty_Is_False_Should_HaveInputErrorWhenFocusChanged()
+        {
+            var comp = Context.RenderComponent<MudTextField<int?>>(
+                ComponentParameter.CreateParameter("Required", true),
+                ComponentParameter.CreateParameter("OnlyValidateIfDirty", false));
+            comp.FindAll("div.mud-input-error").Count.Should().Be(0);
+
+            // user does not change input value but changes focus
+            comp.Find("input").Blur();
+            comp.FindAll("div.mud-input-error").Count.Should().Be(2);
+            comp.Find("div.mud-input-error").TextContent.Trim().Should().Be("Required");
+
+            // user puts in a invalid integer value
+            comp.Find("input").Change("invalid");
+            comp.Find("input").Blur();
+            comp.FindAll("div.mud-input-error").Count.Should().Be(2);
+            comp.Find("div.mud-input-error").TextContent.Trim().Should().Be("Not a valid number");
+
+            // reset
+            await comp.InvokeAsync(() => comp.Instance.Reset());
+            comp.FindAll("div.mud-input-error").Count.Should().Be(0);
+
+            // user does not change input value but changes focus
+            comp.Find("input").Blur();
+            comp.FindAll("div.mud-input-error").Count.Should().Be(2);
+            comp.Find("div.mud-input-error").TextContent.Trim().Should().Be("Required");
+
+            // user corrects input
+            comp.Find("input").Change(55);
+            comp.Find("input").Blur();
+            comp.FindAll("div.mud-input-error").Count.Should().Be(0);
+        }
+
+        [Test]
+        public void TextFieldLabelTest()
+        {
+            var value = new DisplayNameLabelClass();
+
+            var comp = Context.RenderComponent<MudTextField<string>>(x => x.Add(f => f.For, () => value.String));
+            comp.Instance.Label.Should().Be("String LabelAttribute"); //label should be set by the attribute
+
+            var comp2 = Context.RenderComponent<MudTextField<string>>(x => x.Add(f => f.For, () => value.String).Add(l => l.Label, "Label Parameter"));
+            comp2.Instance.Label.Should().Be("Label Parameter"); //existing label should remain
+        }
+    }
 }

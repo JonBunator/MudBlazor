@@ -9,6 +9,24 @@ using MudBlazor.Services;
 
 namespace MudBlazor.UnitTests.Mocks
 {
+    public class MockResizeObserverFactory : IResizeObserverFactory
+    {
+        private MockResizeObserver _observer;
+
+        public MockResizeObserverFactory()
+        {
+
+        }
+
+        public MockResizeObserverFactory(MockResizeObserver observer)
+        {
+            _observer = observer;
+        }
+
+        public IResizeObserver Create(ResizeObserverOptions options) => _observer ?? new MockResizeObserver();
+        public IResizeObserver Create() => Create(new ResizeObserverOptions());
+    }
+
     public class MockResizeObserver : IResizeObserver, IDisposable
     {
         private Dictionary<ElementReference, BoundingClientRect> _cachedValues = new();
@@ -62,7 +80,7 @@ namespace MudBlazor.UnitTests.Mocks
 
         public Task<IEnumerable<BoundingClientRect>> Observe(IEnumerable<ElementReference> elements)
         {
-            List<BoundingClientRect> result = new List<BoundingClientRect>();
+            var result = new List<BoundingClientRect>();
             foreach (var item in elements)
             {
                 var size = PanelSize;

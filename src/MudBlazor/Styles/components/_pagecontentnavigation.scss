@@ -1,7 +1,7 @@
 ﻿@import '../abstracts/variables';
 
 .page-content-navigation {
-
+  
     .page-content-navigation-navlink {
         &.active {
             .mud-nav-link {
@@ -13,7 +13,7 @@
 
         .mud-nav-link {
             padding: 4px 16px 4px 16px;
-            color: var(--mud-palette-text-disabled);
+            color: var(--mud-palette-text-secondary);
             border-left: 2px solid var(--mud-palette-action-disabled-background);
 
             &.active {
@@ -25,6 +25,9 @@
             .mud-nav-link-text {
                 margin-left: 0px;
                 margin-inline-start: 0px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
         }
     }

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Bunit;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using MudBlazor.Docs.Examples;
 using MudBlazor.Services;
 using MudBlazor.UnitTests.Mocks;
 using MudBlazor.UnitTests.TestComponents;
@@ -19,20 +20,22 @@ namespace MudBlazor.UnitTests.Components
     [TestFixture]
     public class TabsTests : BunitTest
     {
+        public override void Setup()
+        {
+            base.Setup();
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), new MockResizeObserverFactory()));
+        }
+
         [Test]
         public async Task AddingAndRemovingTabPanels()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             var comp = Context.RenderComponent<TabsAddingRemovingTabsTest>();
-            Console.WriteLine(comp.Markup);
             comp.Find("div.mud-tabs-panels").InnerHtml.Trim().Should().BeEmpty();
             comp.FindAll("div.mud-tab").Should().BeEmpty();
             comp.Instance.Tabs.Panels.Should().NotBeNull().And.BeEmpty();
 
             // add a panel
             comp.FindAll("button")[0].Click();
-            Console.WriteLine("\n" + comp.Markup);
             comp.Find("div.mud-tabs-panels").InnerHtml.Trim().Should().NotBeEmpty();
             comp.FindAll("div.mud-tab").Count.Should().Be(1);
             comp.FindAll("p.mud-typography").Count.Should().Be(1);
@@ -42,7 +45,6 @@ namespace MudBlazor.UnitTests.Components
 
             // add another
             comp.FindAll("button")[0].Click();
-            Console.WriteLine("\n" + comp.Markup);
             comp.FindAll("div.mud-tab").Count.Should().Be(2);
 
             comp.Instance.Tabs.Panels.Should().NotBeNull().And.HaveCount(2);
@@ -80,10 +82,7 @@ namespace MudBlazor.UnitTests.Components
         [Test]
         public async Task KeepTabsAliveTest()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             var comp = Context.RenderComponent<TabsKeepAliveTest>();
-            Console.WriteLine(comp.Markup);
             // all panels should be evident in the markup:
             comp.FindAll("button").Count.Should().Be(3);
             // every panel should be rendered first exactly once throughout the test:
@@ -140,10 +139,7 @@ namespace MudBlazor.UnitTests.Components
         [Test]
         public async Task KeepTabs_Not_AliveTest()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             var comp = Context.RenderComponent<TabsKeepAliveTest>(ComponentParameter.CreateParameter("KeepPanelsAlive", false));
-            Console.WriteLine(comp.Markup);
             // only one panel should be evident in the markup:
             comp.FindAll("button").Count.Should().Be(1);
             // only the first panel should be rendered first
@@ -181,12 +177,9 @@ namespace MudBlazor.UnitTests.Components
         [Test]
         public void ScrollToItem_NoScrollingNeeded()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             var comp = Context.RenderComponent<ScrollableTabsTest>();
-            Console.WriteLine(comp.Markup);
 
-            for (int i = 0; i < 6; i++)
+            for (var i = 0; i < 6; i++)
             {
                 comp.Instance.SetPanelActive(i);
 
@@ -216,10 +209,11 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = totalSize + 10,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<ScrollableTabsTest>();
-            Console.WriteLine(comp.Markup);
 
             comp.Instance.SetPanelActive(2);
 
@@ -248,11 +242,12 @@ namespace MudBlazor.UnitTests.Components
                 IsVertical = true,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<ScrollableTabsTest>();
             comp.SetParametersAndRender(p => p.Add(x => x.Position, Position.Left));
-            Console.WriteLine(comp.Markup);
 
             comp.Instance.SetPanelActive(2);
 
@@ -276,12 +271,13 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = 200 + 10,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<ScrollableTabsTest>();
-            Console.WriteLine(comp.Markup);
 
-            Dictionary<int, double> expectedTranslations = new Dictionary<int, double>
+            var expectedTranslations = new Dictionary<int, double>
             {
                 { 0, 0 },
                 { 1, 100 },
@@ -291,7 +287,7 @@ namespace MudBlazor.UnitTests.Components
                 { 5, 400 },
             };
 
-            for (int i = 0; i < 6; i++)
+            for (var i = 0; i < 6; i++)
             {
                 comp.Instance.SetPanelActive(i);
 
@@ -310,10 +306,7 @@ namespace MudBlazor.UnitTests.Components
         [Test]
         public async Task Scroll_NotEnabled_EnoughSpace()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             var comp = Context.RenderComponent<ScrollableTabsTest>();
-            Console.WriteLine(comp.Markup);
 
             var scrollButtons = comp.FindComponents<MudIconButton>();
 
@@ -334,14 +327,16 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = 200,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<ScrollableTabsTest>();
 
             var scrollButtons = comp.FindComponents<MudIconButton>();
             scrollButtons.Should().HaveCount(2);
 
-            for (int i = 0; i < 6; i++)
+            for (var i = 0; i < 6; i++)
             {
                 comp.Instance.SetPanelActive(i);
 
@@ -360,14 +355,16 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = 200,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<ScrollableTabsTest>();
 
             var scrollButtons = comp.FindComponents<MudIconButton>();
             scrollButtons.Should().HaveCount(2);
 
-            for (int i = 5; i <= 0; i--)
+            for (var i = 5; i <= 0; i--)
             {
                 comp.Instance.SetPanelActive(i);
 
@@ -385,19 +382,20 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = 200,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<ScrollableTabsTest>();
 
             var scrollButtons = comp.FindComponents<MudIconButton>();
             scrollButtons.Should().HaveCount(2);
 
-            double expectedTranslation = 0.0;
+            var expectedTranslation = 0.0;
 
-            for (int i = 0; i < 2; i++)
+            for (var i = 0; i < 2; i++)
             {
                 scrollButtons.Last().Find("button").Click();
-                expectedTranslation += 200;
+                expectedTranslation += observer.PanelSize;
 
                 var toolbarWrapper = comp.Find(".mud-tabs-toolbar-wrapper");
                 toolbarWrapper.Should().NotBeNull();
@@ -405,20 +403,6 @@ namespace MudBlazor.UnitTests.Components
                 var styleAttr = toolbarWrapper.GetAttribute("style");
 
                 styleAttr.Should().Be($"transform:translateX(-{expectedTranslation.ToString(CultureInfo.InvariantCulture)}px);");
-                GetSliderValue(comp).Should().Be(0);
-            }
-
-            // clicking the button more often should change something
-            for (int i = 0; i < 3; i++)
-            {
-                scrollButtons.Last().Find("button").Click();
-
-                var toolbarWrapper = comp.Find(".mud-tabs-toolbar-wrapper");
-                toolbarWrapper.Should().NotBeNull();
-                toolbarWrapper.HasAttribute("style").Should().Be(true);
-                var styleAttr = toolbarWrapper.GetAttribute("style");
-
-                styleAttr.Should().Be($"transform:translateX(-400px);");
                 GetSliderValue(comp).Should().Be(0);
             }
         }
@@ -432,7 +416,8 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = 200,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<ScrollableTabsTest>();
 
@@ -441,12 +426,12 @@ namespace MudBlazor.UnitTests.Components
 
             comp.Instance.SetPanelActive(5);
 
-            double expectedTranslation = 400.0;
+            var expectedTranslation = 400.0;
 
-            for (int i = 0; i < 2; i++)
+            for (var i = 0; i < 2; i++)
             {
                 scrollButtons.First().Find("button").Click();
-                expectedTranslation -= 200;
+                expectedTranslation -= observer.PanelSize;
 
                 var toolbarWrapper = comp.Find(".mud-tabs-toolbar-wrapper");
                 toolbarWrapper.Should().NotBeNull();
@@ -454,20 +439,6 @@ namespace MudBlazor.UnitTests.Components
                 var styleAttr = toolbarWrapper.GetAttribute("style");
 
                 styleAttr.Should().Be($"transform:translateX(-{expectedTranslation.ToString(CultureInfo.InvariantCulture)}px);");
-                GetSliderValue(comp).Should().Be(5 * 100.0);
-            }
-
-            // clicking the button more often should change something
-            for (int i = 0; i < 3; i++)
-            {
-                scrollButtons.First().Find("button").Click();
-
-                var toolbarWrapper = comp.Find(".mud-tabs-toolbar-wrapper");
-                toolbarWrapper.Should().NotBeNull();
-                toolbarWrapper.HasAttribute("style").Should().Be(true);
-                var styleAttr = toolbarWrapper.GetAttribute("style");
-
-                styleAttr.Should().Be($"transform:translateX(-0px);");
                 GetSliderValue(comp).Should().Be(5 * 100.0);
             }
         }
@@ -481,10 +452,10 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = 300,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<ScrollableTabsTest>();
-            Console.WriteLine(comp.Markup);
 
             comp.Instance.SetPanelActive(1);
 
@@ -495,7 +466,7 @@ namespace MudBlazor.UnitTests.Components
 
             observer.UpdateTotalPanelSize(200.0);
 
-            scrollButtons.First().Instance.Disabled.Should().BeFalse();
+            scrollButtons.First().Instance.Disabled.Should().BeTrue();
             GetSliderValue(comp).Should().Be(1 * 100.0);
         }
 
@@ -508,10 +479,10 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = 300,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<ScrollableTabsTest>();
-            Console.WriteLine(comp.Markup);
 
             comp.Instance.SetPanelActive(1);
 
@@ -521,7 +492,7 @@ namespace MudBlazor.UnitTests.Components
 
             observer.UpdatePanelSize(0, 200.0);
 
-            scrollButtons.First().Instance.Disabled.Should().BeFalse();
+            scrollButtons.First().Instance.Disabled.Should().BeTrue();
             GetSliderValue(comp).Should().Be(200.0);
         }
 
@@ -534,10 +505,10 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = 300,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<ScrollableTabsTest>();
-            Console.WriteLine(comp.Markup);
 
             comp.Instance.SetPanelActive(4);
 
@@ -572,10 +543,10 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = 300,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<ScrollableTabsTest>();
-            Console.WriteLine(comp.Markup);
 
             comp.Instance.SetPanelActive(2);
 
@@ -587,15 +558,15 @@ namespace MudBlazor.UnitTests.Components
 
             await comp.Instance.RemovePanel(0);
 
-            scrollButtons.First().Instance.Disabled.Should().BeTrue();
+            scrollButtons.First().Instance.Disabled.Should().BeFalse();
 
             var toolbarWrapper = comp.Find(".mud-tabs-toolbar-wrapper");
             toolbarWrapper.Should().NotBeNull();
             toolbarWrapper.HasAttribute("style").Should().Be(true);
             var styleAttr = toolbarWrapper.GetAttribute("style");
-            styleAttr.Should().Be($"transform:translateX(-0px);");
+            styleAttr.Should().Be($"transform:translateX(-100px);");
 
-            double sliderValue = GetSliderValue(comp);
+            var sliderValue = GetSliderValue(comp);
             GetSliderValue(comp).Should().Be(1 * 100.0);
         }
 
@@ -608,10 +579,10 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = 300,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<ScrollableTabsTest>();
-            Console.WriteLine(comp.Markup);
 
             comp.Instance.SetPanelActive(2);
 
@@ -650,11 +621,10 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = 250.0,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<SimplifiedScrollableTabsTest>();
-
-            Console.WriteLine(comp.Markup);
 
             var buttonContainer = comp.FindAll(".mud-tabs-scroll-button");
             buttonContainer.Should().HaveCount(0);
@@ -687,11 +657,10 @@ namespace MudBlazor.UnitTests.Components
                 PanelTotalSize = 250.0,
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), observer));
+            var factory = new MockResizeObserverFactory(observer);
+            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserverFactory), factory));
 
             var comp = Context.RenderComponent<SimplifiedScrollableTabsTest>(p => p.Add(x => x.StartAmount, 5));
-
-            Console.WriteLine(comp.Markup);
 
             var buttonContainer = comp.FindAll(".mud-tabs-scroll-button");
             buttonContainer.Should().HaveCount(2);
@@ -728,11 +697,9 @@ namespace MudBlazor.UnitTests.Components
                (x,y) => x.Instance.ActivateTab(y.Tag, false),
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             foreach (var invoker in activator)
             {
-                for (int k = 0; k < 2; k++)
+                for (var k = 0; k < 2; k++)
                 {
                     var comp = Context.RenderComponent<ActivateDisabledTabsTest>();
 
@@ -745,8 +712,6 @@ namespace MudBlazor.UnitTests.Components
                         comp.Instance.EnableTab(0);
                     }
 
-                    Console.WriteLine(comp.Markup);
-
                     var panels = comp.FindAll(".test-panel-selector");
                     var activePanels = comp.FindAll(".mud-tab-active");
 
@@ -755,7 +720,7 @@ namespace MudBlazor.UnitTests.Components
                     activePanels.Should().HaveCount(1);
                     panels[0].ClassList.Contains("mud-tab-active").Should().BeTrue();
 
-                    for (int i = 1; i < comp.Instance.Tabs.Count; i++)
+                    for (var i = 1; i < comp.Instance.Tabs.Count; i++)
                     {
                         invoker(comp, comp.Instance.Tabs[i]);
 
@@ -786,13 +751,9 @@ namespace MudBlazor.UnitTests.Components
                (x,y) => x.Instance.ActivateTab(y.Tag, true),
             };
 
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             foreach (var invoker in activator)
             {
                 var comp = Context.RenderComponent<ActivateDisabledTabsTest>();
-
-                Console.WriteLine(comp.Markup);
 
                 var panels = comp.FindAll(".test-panel-selector");
 
@@ -800,7 +761,7 @@ namespace MudBlazor.UnitTests.Components
                 panels.Should().HaveCount(5);
                 panels[0].ClassList.Contains("mud-tab-active").Should().BeTrue();
 
-                for (int i = 1; i < comp.Instance.Tabs.Count; i++)
+                for (var i = 1; i < comp.Instance.Tabs.Count; i++)
                 {
                     invoker(comp, comp.Instance.Tabs[i]);
 
@@ -820,8 +781,6 @@ namespace MudBlazor.UnitTests.Components
         [Test]
         public async Task SelectedIndex_Binding()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             //starting with index 1:
             var comp = Context.RenderComponent<SelectedIndexTabsTest>();
             comp.Instance.Tabs.ActivePanelIndex.Should().Be(1);
@@ -853,7 +812,7 @@ namespace MudBlazor.UnitTests.Components
         [Test]
         public void DefaultValuesForHeaders()
         {
-            MudTabs tabs = new MudTabs();
+            var tabs = new MudTabs();
 
             tabs.HeaderPosition.Should().Be(TabHeaderPosition.After);
             tabs.Header.Should().BeNull();
@@ -871,8 +830,6 @@ namespace MudBlazor.UnitTests.Components
         [TestCase(TabHeaderPosition.Before)]
         public async Task RenderHeaderBasedOnPosition(TabHeaderPosition position)
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             var comp = Context.RenderComponent<TabsWithHeaderTest>();
             comp.SetParametersAndRender(x => x.Add(y => y.TabHeaderPosition, position));
             comp.SetParametersAndRender(x => x.Add(y => y.TabPanelHeaderPosition, TabHeaderPosition.None));
@@ -881,7 +838,7 @@ namespace MudBlazor.UnitTests.Components
             headerContent.TextContent.Should().Be($"Count: {3}");
 
             var headerPanel = headerContent.ParentElement;
-            string additionalClass = position == TabHeaderPosition.After ? "mud-tabs-header-after" : "mud-tabs-header-before";
+            var additionalClass = position == TabHeaderPosition.After ? "mud-tabs-header-after" : "mud-tabs-header-before";
             headerPanel.ClassList.Should().BeEquivalentTo("mud-tabs-header", additionalClass);
 
             var tabInnerHeader = comp.Find(".mud-tabs-toolbar-inner");
@@ -903,8 +860,6 @@ namespace MudBlazor.UnitTests.Components
         [Test]
         public async Task RenderHeaderBasedOnPosition_None()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             var comp = Context.RenderComponent<TabsWithHeaderTest>();
             comp.SetParametersAndRender(x => x.Add(y => y.TabHeaderPosition, TabHeaderPosition.None));
             comp.SetParametersAndRender(x => x.Add(y => y.TabPanelHeaderPosition, TabHeaderPosition.None));
@@ -921,8 +876,6 @@ namespace MudBlazor.UnitTests.Components
         [TestCase(TabHeaderPosition.Before)]
         public async Task RenderHeaderPanelBasedOnPosition(TabHeaderPosition position)
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             var comp = Context.RenderComponent<TabsWithHeaderTest>();
             comp.SetParametersAndRender(x => x.Add(y => y.TabHeaderPosition, TabHeaderPosition.None));
             comp.SetParametersAndRender(x => x.Add(y => y.TabPanelHeaderPosition, position));
@@ -935,7 +888,7 @@ namespace MudBlazor.UnitTests.Components
             foreach (var item in headerContent)
             {
                 var headerPanel = item.ParentElement;
-                string additionalClass = position == TabHeaderPosition.After ? "mud-tabs-panel-header-after" : "mud-tabs-panel-header-before";
+                var additionalClass = position == TabHeaderPosition.After ? "mud-tabs-panel-header-after" : "mud-tabs-panel-header-before";
 
                 headerPanel.ClassList.Should().BeEquivalentTo("mud-tabs-panel-header", additionalClass);
 
@@ -958,8 +911,6 @@ namespace MudBlazor.UnitTests.Components
         [Test]
         public async Task RenderHeaderPanelBasedOnPosition_None()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             var comp = Context.RenderComponent<TabsWithHeaderTest>();
             comp.SetParametersAndRender(x => x.Add(y => y.TabHeaderPosition, TabHeaderPosition.None));
             comp.SetParametersAndRender(x => x.Add(y => y.TabPanelHeaderPosition, TabHeaderPosition.None));
@@ -971,11 +922,8 @@ namespace MudBlazor.UnitTests.Components
         [Test]
         public async Task HtmlTextTabs()
         {
-            Context.Services.Add(new ServiceDescriptor(typeof(IResizeObserver), new MockResizeObserver()));
-
             // get the tab panels, we must have 2 tabs, one with html text and one without
             var comp = Context.RenderComponent<HtmlTextTabsTest>();
-            Console.WriteLine(comp.Markup);
             var panels = comp.FindAll(".mud-tab");
             panels.Should().HaveCount(2);
 
@@ -988,6 +936,82 @@ namespace MudBlazor.UnitTests.Components
             panels[1].TextContent.Contains("Hello World!").Should().BeTrue();
         }
 
+        /// <summary>
+        ///  Depending on the DisableSliderAnimation parameter, it should toggle the transition style attribute
+        /// </summary>
+        [Test]
+        public async Task ToggleTabsSliderAnimation()
+        {
+            var comp = Context.RenderComponent<ToggleTabsSlideAnimationTest>();
+
+            //Toggle DisableSliderAnimation to true
+            //Check if style attr contains transform: none
+            comp.Instance.toggle = true;
+            comp.Find(".mud-tab-slider").GetAttribute("style").Contains("transition:none").Should().BeTrue();
+
+            //Toggle DisableSliderAnimation to false
+            //Check if style attr does not contain transform: none
+            comp.Instance.toggle = false;
+            comp.Find(".mud-tab-slider").GetAttribute("style").Contains("transition: none").Should().BeFalse();
+        }
+
+        /// <summary>
+        ///  Specifying a custom minimum width should add a min-width style to each tab
+        /// </summary>
+        [Test]
+        public async Task MinimumTabWidth()
+        {
+            var comp = Context.RenderComponent<MinimumWidthTabs>();
+
+            //Check if style respects minimum width from test
+            comp.Find(".mud-tab").GetAttribute("style").Contains("min-width").Should().BeTrue();
+            comp.Find(".mud-tab").GetAttribute("style").Contains("20px").Should().BeTrue();
+
+        }
+
+        /// <summary>
+        /// See: https://github.com/MudBlazor/MudBlazor/issues/2976
+        /// </summary>
+        [Test]
+        public async Task MenuInHeaderPanelCloseOnClickOutside()
+        {
+            var comp = Context.RenderComponent<TabsWithMenuInHeader>();
+
+            //open the menu
+            comp.Find("button").Click();
+
+            // make sure the menu is rendered
+            _ = comp.Find(".my-menu-item-1");
+
+            //click the overlay to force a close
+            comp.Find(".mud-overlay").Click();
+
+            //no menu item should be visible anymore
+            Assert.Throws<ElementNotFoundException>(() => comp.Find(".my-menu-item-1"));
+        }
+
+        [Test]
+        public async Task PrePanelContent()
+        {
+            var comp = Context.RenderComponent<TabsWithPrePanelContent>(p => p.Add(x => x.SelectedIndex, 0));
+
+            var content =  comp.Find(".pre-panel-content-custom");
+
+            content.TextContent.Should().Be("Selected: Tab One");
+
+            content.PreviousElementSibling.ClassList.Should().Contain("mud-tabs-toolbar");
+            content.NextElementSibling.ClassList.Should().Contain("mud-tabs-panels");
+
+            comp.SetParametersAndRender(p => p.Add(x => x.SelectedIndex, 1));
+
+            content = comp.Find(".pre-panel-content-custom");
+
+            content.TextContent.Should().Be("Selected: Tab Two");
+
+            content.PreviousElementSibling.ClassList.Should().Contain("mud-tabs-toolbar");
+            content.NextElementSibling.ClassList.Should().Contain("mud-tabs-panels");
+        }
+
         #region Helper
 
         private static double GetSliderValue(IRenderedComponent<ScrollableTabsTest> comp, string attribute = "left")
@@ -997,15 +1021,54 @@ namespace MudBlazor.UnitTests.Components
 
             var styleAttribute = slider.GetAttribute("style");
             var indexToSplit = styleAttribute.IndexOf($"{attribute}:");
-            var substring = styleAttribute.Substring(indexToSplit + attribute.Length + 1);
-            substring = substring.Remove(substring.Length - 3);
+            var substring = styleAttribute.Substring(indexToSplit + attribute.Length + 1).Split(';')[0];
+            substring = substring.Remove(substring.Length - 2);
             var value = double.Parse(substring, CultureInfo.InvariantCulture);
+
             return value;
         }
 
-
-
-
         #endregion
+
+
+        [Test]
+        public async Task DynamicTabs_CollectionRenderSyncTest()
+        {
+            var comp = Context.RenderComponent<DynamicTabsSimpleExample>();
+
+            var userTabs = comp.Instance.UserTabs;
+            var mudTabs = comp.Instance.DynamicTabs;
+
+            // Initial
+            userTabs.Count.Should().Be(3);
+            mudTabs.Panels.Count.Should().Be(3);
+
+            // Remove
+            comp.Instance.RemoveTab(userTabs.Last().Id);
+            userTabs.Count.Should().Be(2);
+            comp.Render(); // Render to refresh MudTabs
+            mudTabs.Panels.Count.Should().Be(2);
+
+            // Add
+            comp.Instance.AddTab(Guid.NewGuid());
+            userTabs.Count.Should().Be(3);
+            comp.Render(); // Render to refresh MudTabs
+            mudTabs.Panels.Count.Should().Be(3);
+
+            // Remove all, no ArgumentOutOfRangeException should be thrown.
+            comp.Instance.RemoveTab(userTabs.Last().Id);
+            comp.Instance.RemoveTab(userTabs.Last().Id);
+            comp.Instance.RemoveTab(userTabs.Last().Id);
+            userTabs.Count.Should().Be(0);
+            comp.Render(); // Render to refresh MudTabs.
+            mudTabs.Panels.Count.Should().Be(0);
+
+            // No active panel.
+            mudTabs.ActivePanel.Should().BeNull();
+
+            // No active panel means no active panel index.
+            comp.Instance.UserIndex.Should().Be(-1);
+            mudTabs.ActivePanelIndex.Should().Be(-1);
+        }
     }
 }

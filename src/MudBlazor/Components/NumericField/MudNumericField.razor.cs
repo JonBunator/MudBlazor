@@ -1,24 +1,28 @@
-﻿using System;
+﻿// Copyright (c) MudBlazor 2022
+// MudBlazor licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using MudBlazor.Services;
 using MudBlazor.Utilities;
 
 namespace MudBlazor
 {
     public partial class MudNumericField<T> : MudDebouncedInput<T>
     {
+        private IKeyInterceptor _keyInterceptor;
+        private Comparer _comparer = new(CultureInfo.InvariantCulture);
+
         public MudNumericField() : base()
         {
             Validation = new Func<T, Task<bool>>(ValidateInput);
-            _inputConverter = new NumericBoundariesConverter<T>((val) => ConstrainBoundaries(val).value)
-            {
-                FilterFunc = CleanText,
-                Culture = CultureInfo.CurrentUICulture,
-            };
-
             #region parameters default depending on T
 
             //sbyte
@@ -102,50 +106,55 @@ namespace MudBlazor
             #endregion parameters default depending on T
         }
 
-        protected override bool SetCulture(CultureInfo value)
-        {
-            var changed = base.SetCulture(value);
-            _inputConverter.Culture = value;
-            return changed;
-        }
-
         protected string Classname =>
             new CssBuilder("mud-input-input-control mud-input-number-control " +
                            (HideSpinButtons ? "mud-input-nospin" : "mud-input-showspin"))
                 .AddClass(Class)
                 .Build();
 
+
+        [Inject] private IKeyInterceptorFactory _keyInterceptorFactory { get; set; }
+
+        private string _elementId = "numericField_" + Guid.NewGuid().ToString().Substring(0, 8);
+
         private MudInput<string> _elementReference;
 
-        private Converter<string> _inputConverter;
-
+        [ExcludeFromCodeCoverage]
         public override ValueTask FocusAsync()
         {
             return _elementReference.FocusAsync();
         }
 
+        [ExcludeFromCodeCoverage]
+        public override ValueTask BlurAsync()
+        {
+            return _elementReference.BlurAsync();
+        }
+
+        [ExcludeFromCodeCoverage]
         public override ValueTask SelectAsync()
         {
             return _elementReference.SelectAsync();
         }
 
+        [ExcludeFromCodeCoverage]
         public override ValueTask SelectRangeAsync(int pos1, int pos2)
         {
             return _elementReference.SelectRangeAsync(pos1, pos2);
         }
 
-        protected override async Task SetValueAsync(T value, bool updateText = true)
+        protected override Task SetValueAsync(T value, bool updateText = true)
         {
             bool valueChanged;
             (value, valueChanged) = ConstrainBoundaries(value);
-            await base.SetValueAsync(value, valueChanged || updateText);
+            return base.SetValueAsync(value, valueChanged || updateText);
         }
 
-        protected override void OnBlurred(FocusEventArgs obj)
+        protected internal override async void OnBlurred(FocusEventArgs obj)
         {
             base.OnBlurred(obj);
-            if (RuntimeLocation.IsServerSide)
-                _key++; // this forces a re-render on the inner input to display the value correctly
+            await UpdateValuePropertyAsync(true); //Required to set the value after a blur before the debounce period has elapsed
+            await UpdateTextPropertyAsync(false); //Required to update the string formatting after a blur before the debouce period has elapsed
         }
 
         protected async Task<bool> ValidateInput(T value)
@@ -158,20 +167,56 @@ namespace MudBlazor
         }
 
         /// <summary>
+        /// Show clear button.
+        /// </summary>
+        [Parameter]
+        [Category(CategoryTypes.FormComponent.Behavior)]
+        public bool Clearable { get; set; } = false;
+
+        /// <summary>
         /// Decrements or increments depending on factor
         /// </summary>
         /// <param name="factor">Multiplication factor (1 or -1) will be applied to the step</param>
         private async Task Change(double factor = 1)
         {
-            var value = Num.To<T>(Num.From(Value) + Num.From(Step) * factor);
-            await SetValueAsync(ConstrainBoundaries(value).value);
+            try
+            {
+                var nextValue = GetNextValue(factor);
+
+                // validate that the data type is a value type before we compare them
+                if (typeof(T).IsValueType)
+                {
+                    if (factor > 0 && _comparer.Compare(nextValue, Value) < 0)
+                        nextValue = Max;
+                    else if (factor < 0 && (_comparer.Compare(nextValue, Value) > 0 || nextValue is null))
+                        nextValue = Min;
+                }
+
+                await SetValueAsync(ConstrainBoundaries(nextValue).value);
+                _elementReference.SetText(Text).AndForget();
+            }
+            catch (OverflowException)
+            {
+                // if next value overflows the primitive type, lets set it to Min or Max depending if factor is positive or negative
+                await SetValueAsync(factor > 0 ? Max : Min, true);
+            }
+        }
+
+        private T GetNextValue(double factor)
+        {
+            if (typeof(T) == typeof(decimal) || typeof(T) == typeof(decimal?))
+                return (T)(object)Convert.ToDecimal(FromDecimal(Value) + FromDecimal(Step) * (decimal)factor);
+            if (typeof(T) == typeof(long) || typeof(T) == typeof(long?))
+                return (T)(object)Convert.ToInt64(FromInt64(Value) + FromInt64(Step) * factor);
+            if (typeof(T) == typeof(ulong) || typeof(T) == typeof(ulong?))
+                return (T)(object)Convert.ToUInt64(FromUInt64(Value) + FromUInt64(Step) * factor);
+            return Num.To<T>(Num.From(Value) + Num.From(Step) * factor);
         }
 
         /// <summary>
         /// Adds a Step to the Value
         /// </summary>
         public Task Increment() => Change(factor: 1);
-
 
         /// <summary>
         /// Substracts a Step from the Value
@@ -181,154 +226,101 @@ namespace MudBlazor
         /// <summary>
         /// Checks if the value respects the boundaries set for this instance.
         /// </summary>
-        /// <param name="v">Value to check.</param>
+        /// <param name="value">Value to check.</param>
         /// <returns>Returns a valid value and if it has been changed.</returns>
-        protected (T value, bool changed) ConstrainBoundaries(T v)
+        protected (T value, bool changed) ConstrainBoundaries(T value)
         {
-            var value = Num.From(v);
-            var max = Num.From(Max);
-            var min = Num.From(Min);
-            //check if Max/Min has value, if not use MaxValue/MinValue for that data type
-            if (value > max)
-                return (Max, true);
-            else if (value < min)
-                return (Min, true);
-            return (Num.To<T>(value), false);
-        }
+            if (value == null)
+                return (default(T), false);
 
-
-        private long _key = 0;
-        private bool _keyDownPreventDefault;
-
-        /// <summary>
-        /// Overrides KeyDown event, intercepts Arrow Up/Down and uses them to add/substract the value manually by the step value.
-        /// Relying on the browser mean the steps are each integer multiple from <see cref="Min"/> up until <see cref="Max"/>.
-        /// This align the behaviour with the spinner buttons.
-        /// </summary>
-        /// <remarks>https://try.mudblazor.com/snippet/QamlkdvmBtrsuEtb</remarks>
-        protected async Task InterceptKeydown(KeyboardEventArgs obj)
-        {
-            if (Disabled || ReadOnly)
-                return;
-
-            if (obj.Type == "keydown") //KeyDown or repeat, blazor never fires InvokeKeyPress
+            // validate that the data type is a value type before we compare them
+            if (typeof(T).IsValueType)
             {
-                switch (obj.Key)
-                {
-                    case "ArrowUp":
-                        if (RuntimeLocation.IsServerSide)
-                        {
-                            if (!Immediate)
-                            {
-                                _key++;
-                                await Task.Delay(1);
-                                await Increment();
-                                await Task.Delay(1);
-                                _ = FocusAsync();
-                            }
-                            else
-                                await Increment();
-                        }
-                        else
-                        {
-                            await Increment();
-                            _elementReference.ForceRender(true);
-                        }
+                // check if value is bigger than defined MAX, if so take the defined MAX value instead
+                if (_comparer.Compare(value, Max) > 0)
+                    return (Max, true);
 
-                        return;
+                // check if value is lower than defined MIN, if so take the defined MIN value instead
+                if (_comparer.Compare(value, Min) < 0)
+                    return (Min, true);
+            };
 
-                    case "ArrowDown":
-                        if (RuntimeLocation.IsServerSide)
-                        {
-                            if (!Immediate)
-                            {
-                                _key++;
-                                await Task.Delay(1);
-                                await Decrement();
-                                await Task.Delay(1);
-                                _ = FocusAsync();
-                            }
-                            else
-                                await Decrement();
-                        }
-                        else
-                        {
-                            await Decrement();
-                            _elementReference.ForceRender(true);
-                        }
-                        return;
-                    // various navigation keys
-                    case "ArrowLeft":
-                    case "ArrowRight":
-                    case "Tab":
-                    case "Backspace":
-                    case "Delete":
-                        break;
-
-                    //copy/paste
-                    case "v":
-                    case "c":
-                        if (obj.CtrlKey is false)
-                        {
-                            _keyDownPreventDefault = true;
-                            return;
-                        }
-
-                        break;
-
-                    default:
-                        var acceptableKeyTypes = new Regex("^[0-9,.-]$");
-                        var isMatch = acceptableKeyTypes.Match(obj.Key).Success;
-                        if (isMatch is false)
-                        {
-                            _keyDownPreventDefault = true;
-                            return;
-                        }
-                        break;
-                }
-            }
-
-            OnKeyDown.InvokeAsync(obj).AndForget();
+            return (value, false);
         }
 
-        protected void InterceptKeyUp(KeyboardEventArgs obj)
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (firstRender)
+            {
+                _keyInterceptor = _keyInterceptorFactory.Create();
+                await _keyInterceptor.Connect(_elementId, new KeyInterceptorOptions()
+                {
+                    //EnableLogging = true,
+                    TargetClass = "mud-input-slot",
+                    Keys = {
+                        new KeyOptions { Key="ArrowUp", PreventDown = "key+none" }, // prevent scrolling page, instead increment
+                        new KeyOptions { Key="ArrowDown", PreventDown = "key+none" }, // prevent scrolling page, instead decrement
+                        new KeyOptions { Key="Dead", PreventDown = "key+any" }, // prevent dead keys like ^ ` ´ etc
+                        new KeyOptions { Key="/^(?!"+(Pattern ?? "[0-9]").TrimEnd('*')+").$/", PreventDown = "key+none|key+shift|key+alt" }, // prevent input of all other characters except allowed, like [0-9.,-+]
+                    },
+                });
+            }
+            await base.OnAfterRenderAsync(firstRender);
+        }
+
+        protected async Task HandleKeydown(KeyboardEventArgs obj)
         {
             if (Disabled || ReadOnly)
                 return;
             switch (obj.Key)
             {
                 case "ArrowUp":
-                    if (RuntimeLocation.IsServerSide)
-                        _elementReference?.ForceRender(forceTextUpdate: true);
+                    await Increment();
                     break;
-
                 case "ArrowDown":
-                    if (RuntimeLocation.IsServerSide)
-                        _elementReference?.ForceRender(forceTextUpdate: true);
+                    await Decrement();
                     break;
             }
-
-            _keyDownPreventDefault = false;
-            StateHasChanged();
-            OnKeyUp.InvokeAsync(obj).AndForget();
+            OnKeyDown.InvokeAsync(obj).AndForget();
         }
 
-        /// <summary>
-        /// The short hint displayed in the input before the user enters a value.
-        /// </summary>
-        [Parameter]
-        public string Placeholder { get; set; }
+        protected Task HandleKeyUp(KeyboardEventArgs obj)
+        {
+            if (Disabled || ReadOnly)
+                return Task.CompletedTask;
+            OnKeyUp.InvokeAsync(obj).AndForget();
+            return Task.CompletedTask;
+        }
 
-        /// <summary>
-        /// If string has value the label text will be displayed in the input, and scaled down at the top if the input has value.
-        /// </summary>
-        [Parameter]
-        public string Label { get; set; }
+        protected async Task OnMouseWheel(WheelEventArgs obj)
+        {
+            if (!obj.ShiftKey || Disabled || ReadOnly)
+                return;
+            if (obj.DeltaY < 0)
+            {
+                if (InvertMouseWheel == false)
+                    await Increment();
+                else
+                    await Decrement();
+            }
+            else if (obj.DeltaY > 0)
+            {
+                if (InvertMouseWheel == false)
+                    await Decrement();
+                else
+                    await Increment();
+            }
+        }
 
-        //Tracks if Min has a value.
         private bool _minHasValue = false;
 
-        //default value for the type
+        /// <summary>
+        /// Reverts mouse wheel up and down events, if true.
+        /// </summary>
+        [Parameter]
+        [Category(CategoryTypes.FormComponent.Behavior)]
+        public bool InvertMouseWheel { get; set; } = false;
+
         private T _minDefault;
 
         private T _min;
@@ -337,6 +329,7 @@ namespace MudBlazor
         /// The minimum value for the input.
         /// </summary>
         [Parameter]
+        [Category(CategoryTypes.FormComponent.Validation)]
         public T Min
         {
             get => _minHasValue ? _min : _minDefault;
@@ -347,18 +340,15 @@ namespace MudBlazor
             }
         }
 
-        //Tracks if Max has a value.
         private bool _maxHasValue = false;
-
-        //default value for the type
         private T _maxDefault;
-
         private T _max;
 
         /// <summary>
         /// The maximum value for the input.
         /// </summary>
         [Parameter]
+        [Category(CategoryTypes.FormComponent.Validation)]
         public T Max
         {
             get => _maxHasValue ? _max : _maxDefault;
@@ -369,18 +359,15 @@ namespace MudBlazor
             }
         }
 
-        //Tracks if Max has a value.
         private bool _stepHasValue = false;
-
-        //default value for the type, it's useful for decimal type to avoid constant evaluation
         private T _stepDefault;
-
         private T _step;
 
         /// <summary>
         /// The increment added/subtracted by the spin buttons.
         /// </summary>
         [Parameter]
+        [Category(CategoryTypes.FormComponent.Behavior)]
         public T Step
         {
             get => _stepHasValue ? _step : _stepDefault;
@@ -395,6 +382,7 @@ namespace MudBlazor
         /// Hides the spin buttons, the user can still change value with keyboard arrows and manual update.
         /// </summary>
         [Parameter]
+        [Category(CategoryTypes.FormComponent.Appearance)]
         public bool HideSpinButtons { get; set; }
 
         /// <summary>
@@ -406,27 +394,48 @@ namespace MudBlazor
 
         /// <summary>
         /// The pattern attribute, when specified, is a regular expression which the input's value must match in order for the value to pass constraint validation. It must be a valid JavaScript regular expression
-        /// Defaults to [0-9,\.\-+]*
+        /// Defaults to [0-9,.\-]
         /// To get a numerical keyboard on safari, use the pattern. The default pattern should achieve numerical keyboard.
+        ///
+        /// Note: this pattern is also used to prevent all input except numbers and allowed characters. So for instance to allow only numbers, no signs and no commas you might change it to to [0-9.]
         /// </summary>
         [Parameter]
-        public override string Pattern { get; set; } = @"[0-9,\.\-+]*";
+        public override string Pattern { get; set; } = @"[0-9,.\-]";
 
-        protected string CleanText(string text)
+        private string GetCounterText() => Counter == null ? string.Empty : (Counter == 0 ? (string.IsNullOrEmpty(Text) ? "0" : $"{Text.Length}") : ((string.IsNullOrEmpty(Text) ? "0" : $"{Text.Length}") + $" / {Counter}"));
+
+        private Task OnInputValueChanged(string text)
         {
-            if (string.IsNullOrEmpty(text))
-                return text;
-            var pattern = Pattern;
-            var cleanedText = "";
-            foreach (Match m in Regex.Matches(text, pattern))
-            {
-                cleanedText += m.Captures[0].Value;
-            }
-
-            cleanedText = cleanedText[0] + cleanedText.Substring(1).Replace("-", string.Empty);
-
-            return cleanedText;
+            return SetTextAsync(text);
         }
 
+        //avoids the format to use scientific notation for large or small number in floating points types, while covering all options
+        //https://stackoverflow.com/questions/1546113/double-to-string-conversion-without-scientific-notation
+        private const string TagFormat = "0.###################################################################################################################################################################################################################################################################################################################################################";
+
+        private string FormatParam(T value)
+        {
+            if (value is IFormattable f)
+                return f.ToString(TagFormat, CultureInfo.InvariantCulture.NumberFormat);
+            else
+                return null;
+        }
+
+        private decimal FromDecimal(T v)
+            => Convert.ToDecimal((decimal?)(object)v);
+        private long FromInt64(T v)
+            => Convert.ToInt64((long?)(object)v);
+        private ulong FromUInt64(T v)
+            => Convert.ToUInt64((ulong?)(object)v);
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            if (disposing == true)
+            {
+                _keyInterceptor?.Dispose();
+            }
+        }
     }
 }

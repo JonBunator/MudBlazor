@@ -27,10 +27,10 @@ namespace MudBlazor
             .AddStyle(Style)
         .Build();
 
-        [CascadingParameter]
-        public bool RightToLeft { get; set; }
+        [CascadingParameter(Name = "RightToLeft")] public bool RightToLeft { get; set; }
 
         [Parameter]
+        [Category(CategoryTypes.Drawer.Behavior)]
         public RenderFragment ChildContent { get; set; }
 
         internal void FireDrawersChanged() => StateHasChanged();
@@ -44,7 +44,11 @@ namespace MudBlazor
             StateHasChanged();
         }
 
-        internal void Remove(MudDrawer drawer) => _drawers.Remove(drawer);
+        internal void Remove(MudDrawer drawer)
+        {
+            _drawers.Remove(drawer);
+            StateHasChanged();
+        }
 
         private string GetDrawerClass(MudDrawer drawer)
         {
@@ -52,7 +56,7 @@ namespace MudBlazor
                 return string.Empty;
 
             var className = $"mud-drawer-{(drawer.Open ? "open" : "close")}-{drawer.Variant.ToDescriptionString()}";
-            if (drawer.Variant == DrawerVariant.Responsive || drawer.Variant == DrawerVariant.Mini)
+            if (drawer.Variant is DrawerVariant.Responsive or DrawerVariant.Mini)
             {
                 className += $"-{drawer.Breakpoint.ToDescriptionString()}";
             }
@@ -81,25 +85,25 @@ namespace MudBlazor
 
         private MudDrawer FindLeftDrawer()
         {
-            Anchor anchor = RightToLeft ? Anchor.End : Anchor.Start;
+            var anchor = RightToLeft ? Anchor.End : Anchor.Start;
             return _drawers.FirstOrDefault(d => d.Anchor == anchor || d.Anchor == Anchor.Left);
         }
 
         private MudDrawer FindRightDrawer()
         {
-            Anchor anchor = RightToLeft ? Anchor.Start : Anchor.End;
+            var anchor = RightToLeft ? Anchor.Start : Anchor.End;
             return _drawers.FirstOrDefault(d => d.Anchor == anchor || d.Anchor == Anchor.Right);
         }
 
         private MudDrawer FindLeftMiniDrawer()
         {
-            Anchor anchor = RightToLeft ? Anchor.End : Anchor.Start;
+            var anchor = RightToLeft ? Anchor.End : Anchor.Start;
             return _drawers.FirstOrDefault(d => d.Variant == DrawerVariant.Mini && (d.Anchor == anchor || d.Anchor == Anchor.Left));
         }
 
         private MudDrawer FindRightMiniDrawer()
         {
-            Anchor anchor = RightToLeft ? Anchor.Start : Anchor.End;
+            var anchor = RightToLeft ? Anchor.Start : Anchor.End;
             return _drawers.FirstOrDefault(d => d.Variant == DrawerVariant.Mini && (d.Anchor == anchor || d.Anchor == Anchor.Right));
         }
     }

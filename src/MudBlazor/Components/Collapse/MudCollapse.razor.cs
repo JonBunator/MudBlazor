@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Globalization;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -8,25 +7,23 @@ using MudBlazor.Utilities;
 
 namespace MudBlazor
 {
-    public partial class MudCollapse : MudComponentBase, IDisposable
+    public partial class MudCollapse : MudComponentBase
     {
-        private enum CollapseState
+        internal enum CollapseState
         {
             Entering, Entered, Exiting, Exited
         }
 
-        private double _height;
-        private int _listenerId;
+        internal double _height;
         private bool _expanded, _isRendered, _updateHeight;
-        private ElementReference _container, _wrapper;
-        private CollapseState _state = CollapseState.Exited;
-        private DotNetObjectReference<MudCollapse> _dotNetRef;
+        private ElementReference _wrapper;
+        internal CollapseState _state = CollapseState.Exited;
 
         protected string Stylename =>
             new StyleBuilder()
-            .AddStyle("max-height", $"{MaxHeight?.ToString("#.##", CultureInfo.InvariantCulture)}px", MaxHeight != null)
+            .AddStyle("max-height", MaxHeight.ToPx(), MaxHeight != null)
             .AddStyle("height", "auto", _state == CollapseState.Entered)
-            .AddStyle("height", $"{_height.ToString("#.##", CultureInfo.InvariantCulture)}px", _state == CollapseState.Entering || _state == CollapseState.Exiting)
+            .AddStyle("height", _height.ToPx(), _state is CollapseState.Entering or CollapseState.Exiting)
             .AddStyle("animation-duration", $"{CalculatedAnimationDuration.ToString("#.##", CultureInfo.InvariantCulture)}s", _state == CollapseState.Entering)
             .AddStyle(Style)
             .Build();
@@ -50,18 +47,19 @@ namespace MudBlazor
             {
                 if (_expanded == value)
                     return;
-
                 _expanded = value;
+
                 if (_isRendered)
                 {
                     _state = _expanded ? CollapseState.Entering : CollapseState.Exiting;
                     _ = UpdateHeight();
-                    _updateHeight = _height == 0;
+                    _updateHeight = true;
                 }
                 else if (_expanded)
                 {
                     _state = CollapseState.Entered;
                 }
+
                 _ = ExpandedChanged.InvokeAsync(_expanded);
             }
         }
@@ -100,15 +98,15 @@ namespace MudBlazor
             set { }
         }
 
-        private async Task UpdateHeight()
+        internal async Task UpdateHeight()
         {
-            if (_disposeCount > 0)
-            {
-                _height = 0;
-            }
-            else
+            try
             {
                 _height = (await _wrapper.MudGetBoundingClientRectAsync())?.Height ?? 0;
+            }
+            catch (Exception ex) when (ex is JSDisconnectedException || ex is TaskCanceledException)
+            {
+                _height = 0;
             }
 
             if (MaxHeight != null && _height > MaxHeight)
@@ -117,20 +115,14 @@ namespace MudBlazor
             }
         }
 
-        protected override void OnInitialized()
-        {
-            _dotNetRef = DotNetObjectReference.Create(this);
-        }
-
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
             {
                 _isRendered = true;
                 await UpdateHeight();
-                _listenerId = await _container.MudAddEventListenerAsync(_dotNetRef, "animationend", nameof(AnimationEnd));
             }
-            else if (_updateHeight && (_state == CollapseState.Entering || _state == CollapseState.Exiting))
+            else if (_updateHeight && _state is CollapseState.Entering or CollapseState.Exiting)
             {
                 _updateHeight = false;
                 await UpdateHeight();
@@ -139,30 +131,6 @@ namespace MudBlazor
             await base.OnAfterRenderAsync(firstRender);
         }
 
-        int _disposeCount;
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (Interlocked.Increment(ref _disposeCount) == 1)
-            {
-                if (disposing)
-                {
-                    if (_listenerId != 0)
-                        _ = _container.MudRemoveEventListenerAsync("animationend", _listenerId);
-                    var toDispose = _dotNetRef;
-                    _dotNetRef = null;
-                    toDispose?.Dispose();
-                }
-            }
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        [JSInvokable]
         public void AnimationEnd()
         {
             if (_state == CollapseState.Entering)

@@ -23,6 +23,7 @@ namespace MudBlazor.UnitTests.UserAttributes
         {
             Exclude(typeof(MudBooleanInput<>)); // This is the base class of Switch and CheckBox and should be skipped
             Exclude(typeof(MudHidden));         // No need to test
+            Exclude(typeof(MudBreakpointProvider)); // just exposing a cascading value, no layout implications
             Exclude(typeof(MudPicker<>));       // Internal component, skip
             Exclude(typeof(MudRadioGroup<>));   // Wrapping component, skip
         }
@@ -42,14 +43,16 @@ namespace MudBlazor.UnitTests.UserAttributes
 
             // Act & Assert
             var mudComponentTypes = GetMudComponentTypes();
+
             mudComponentTypes.Should().NotBeEmpty();
             foreach (var componentType in mudComponentTypes)
             {
-                //this components doesn't need to have markup
-                if (componentType == typeof(MudPopover)
-                    || componentType == typeof(MudPortal)
-                    || componentType == typeof(MudPortalProvider)
-                    ) { continue; }
+                // these components do not need to have markup
+                if (componentType == typeof(MudPopover) || componentType.Name == "Column`1" || componentType.Name == "FooterCell`1"
+                    || componentType.Name == "HeaderCell`1" || componentType.Name == "FilterHeaderCell`1" || componentType.Name == "SelectColumn`1" || componentType.Name == "HierarchyColumn`1")
+                {
+                    continue;
+                }
 
                 var component = componentFactory.Create(componentType, testContext);
 
