@@ -1,0 +1,28 @@
+on:
+  pull_request_target:
+    types: [closed]
+
+jobs:
+  pr-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            //removes labels when PR is closed
+            let labelsToRemove = ["needs review", "needs changes", "needs docs", "needs example", "needs tests", "needs to merge dev"];
+            let labels = github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            })
+            for(let labelIndex in labels) {
+              if(labelsToRemove.includes(labels[labelIndex])) {
+                github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  name: labels[labelIndex]
+                })
+              }
+            }
